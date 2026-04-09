@@ -170,23 +170,31 @@ impl OllamaBackend {
         request: &GenerationRequest,
         candidate_index: u16,
     ) -> Result<Vec<GenerationEvent>, BackendError> {
-        let body = OllamaGenerateRequest {
-            model: model_tag.to_string(),
-            prompt: request.prompt.clone(),
-            stream: false,
-            system: request.system_prompt.clone(),
-            options: OllamaOptions {
-                temperature: request.params.temperature,
-                top_p: request.params.top_p,
-                top_k: request.params.top_k,
-                num_predict: request.params.max_tokens,
-                repeat_penalty: request.params.repetition_penalty,
-            },
-        };
+        // Use /api/chat endpoint — required for Gemma 4 and newer models
+        // that don't respond to /api/generate properly.
+        let mut messages = Vec::new();
+
+        if let Some(ref sys) = request.system_prompt {
+            messages.push(serde_json::json!({"role": "system", "content": sys}));
+        }
+        messages.push(serde_json::json!({"role": "user", "content": &request.prompt}));
+
+        let body = serde_json::json!({
+            "model": model_tag,
+            "messages": messages,
+            "stream": false,
+            "options": {
+                "temperature": request.params.temperature,
+                "top_p": request.params.top_p,
+                "top_k": request.params.top_k,
+                "num_predict": request.params.max_tokens,
+                "repeat_penalty": request.params.repetition_penalty,
+            }
+        });
 
         let resp = self
             .client
-            .post(format!("{}/api/generate", self.base_url))
+            .post(format!("{}/api/chat", self.base_url))
             .json(&body)
             .send()
             .await
@@ -200,12 +208,31 @@ impl OllamaBackend {
             )));
         }
 
-        let gen_resp: OllamaGenerateResponse = resp
+        let chat_resp: serde_json::Value = resp
             .json()
             .await
             .map_err(|e| BackendError::Backend(format!("Failed to parse response: {e}")))?;
 
-        let full_text = gen_resp.response.unwrap_or_default();
+        let full_text = chat_resp
+            .get("message")
+            .and_then(|m| m.get("content"))
+            .and_then(|c| c.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        let eval_count = chat_resp
+            .get("eval_count")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32;
+        let prompt_eval_count = chat_resp
+            .get("prompt_eval_count")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32;
+        let total_duration = chat_resp
+            .get("total_duration")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0);
+
         let events = vec![
             GenerationEvent::Token {
                 candidate_index,
@@ -216,9 +243,9 @@ impl OllamaBackend {
                 candidate_index,
                 finish_reason: FinishReason::Stop,
                 usage: UsageStats {
-                    prompt_tokens: gen_resp.prompt_eval_count,
-                    generated_tokens: gen_resp.eval_count,
-                    elapsed_ms: gen_resp.total_duration / 1_000_000, // ns to ms
+                    prompt_tokens: prompt_eval_count,
+                    generated_tokens: eval_count,
+                    elapsed_ms: total_duration / 1_000_000,
                 },
                 full_text,
             },

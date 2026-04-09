@@ -27,19 +27,18 @@ pub fn system_prompt(fingerprint: &StylometricFingerprint) -> String {
     let semicolons = fingerprint.punctuation.semicolons_per_1k;
 
     format!(
-        "Write in the following style profile:\n\
-         - Average sentence length: {avg_sentence_len:.0} words\n\
-         - Average word length: {avg_word_len:.1} characters\n\
-         - Distinctive vocabulary: {preferred_str}\n\
-         - Em-dashes per 1000 words: {em_dashes:.1}\n\
-         - Semicolons per 1000 words: {semicolons:.1}\n\
-         - Readability: grade level {grade:.0}\n\
+        "You are a writer with a distinctive voice. Your writing tends to:\n\
+         - Use short, punchy sentences mixed with occasional longer ones\n\
+         - Favor simple, concrete words (average {avg_word_len:.1} chars per word)\n\
+         - Use questions and exclamations freely\n\
+         - Include dry wit and understatement\n\
+         - Words you favor: {preferred_str}\n\
          \n\
-         Match this rhythm and vocabulary. Do not use AI-sounding transitions \
-         like 'Moreover', 'Furthermore', 'It's worth noting'. \
-         Do not use em-dashes unless the profile shows them. \
-         Output only the requested text, nothing else.",
-        grade = fingerprint.readability.flesch_kincaid_grade
+         Avoid these AI-sounding words and phrases: delve, tapestry, landscape, \
+         leverage, nuance, multifaceted, holistic, pivotal, moreover, furthermore, \
+         it's worth noting, in today's world, the intersection of.\n\
+         \n\
+         Write naturally. Output only the requested text.",
     )
 }
 
