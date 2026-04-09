@@ -59,3 +59,44 @@ fn capabilities_builder_sets_flags() {
     assert_eq!(caps.quant_schemes.len(), 2);
     assert_eq!(caps.max_context, 128_000);
 }
+
+use std::collections::HashMap;
+use writer_cli::backends::inference::request::{
+    GenerationParams, GenerationRequest, LogitBiasMap,
+};
+
+#[test]
+fn generation_request_builder_defaults_are_quality_oriented() {
+    let req = GenerationRequest::new(
+        "google/gemma-4-26b-a4b".parse::<ModelId>().unwrap(),
+        "write an essay about ravens".to_string(),
+    );
+    assert_eq!(req.params.n_candidates, 8);
+    assert_eq!(req.params.temperature, 0.7);
+    assert_eq!(req.params.top_p, 0.92);
+    assert_eq!(req.params.max_tokens, 2048);
+    assert_eq!(req.params.kv_quant_preference, None);
+    assert!(req.adapter.is_none());
+    assert!(req.logit_bias.is_empty());
+}
+
+#[test]
+fn generation_request_with_adapter_and_bias() {
+    let mut bias: LogitBiasMap = HashMap::new();
+    bias.insert("delve".into(), -5.0);
+    bias.insert("leverage".into(), -3.0);
+
+    let req = GenerationRequest::new(
+        "google/gemma-4-26b-a4b".parse::<ModelId>().unwrap(),
+        "draft a blog post".to_string(),
+    )
+    .with_adapter(AdapterRef::new("default", "/tmp/a.safetensors".into()))
+    .with_logit_bias(bias)
+    .with_n_candidates(16);
+
+    assert!(req.adapter.is_some());
+    assert_eq!(req.logit_bias.get("delve"), Some(&-5.0));
+    assert_eq!(req.params.n_candidates, 16);
+    // Silence unused-import warning when GenerationParams is not directly used.
+    let _ = GenerationParams::default();
+}
