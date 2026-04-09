@@ -55,13 +55,13 @@ async fn generate_produces_events() {
         .mount(&mock_server)
         .await;
 
-    // Mock generate endpoint
+    // Mock chat endpoint (Gemma 4+ uses /api/chat)
     Mock::given(method("POST"))
-        .and(path("/api/generate"))
+        .and(path("/api/chat"))
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "response": "Hello, I am writing in your voice now.",
+            "message": {"role": "assistant", "content": "Hello, I am writing in your voice now."},
             "done": true,
-            "total_duration": 1234000000,
+            "total_duration": 1234000000_i64,
             "eval_count": 8,
             "prompt_eval_count": 5
         })))
