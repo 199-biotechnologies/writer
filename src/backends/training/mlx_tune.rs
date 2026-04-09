@@ -61,8 +61,9 @@ impl TrainingBackend for MlxTuneBackend {
         // Build adapter output path
         std::fs::create_dir_all(config.adapter_out.parent().unwrap_or(Path::new(".")))?;
 
-        // Determine model name for mlx-lm
-        let model_name = format!("{}/{}", config.base_model.owner(), config.base_model.name());
+        // Resolve to the quantized MLX community model for Apple Silicon training.
+        // google/gemma-4-26b -> mlx-community/gemma-4-26b-a4b-it-4bit
+        let model_name = resolve_mlx_model(&config.base_model);
 
         // Run mlx_lm.lora
         let mut child = tokio::process::Command::new(&self.mlx_lm_path)
@@ -263,6 +264,29 @@ struct ChatMessage {
 #[derive(Serialize)]
 struct ChatExample {
     messages: Vec<ChatMessage>,
+}
+
+/// Map a writer ModelId to the quantized MLX community model path.
+/// mlx-lm needs the HuggingFace repo path for the quantized weights.
+fn resolve_mlx_model(model_id: &crate::backends::types::ModelId) -> String {
+    let owner = model_id.owner();
+    let name = model_id.name();
+
+    // Already an MLX community model — pass through
+    if owner == "mlx-community" {
+        return format!("{owner}/{name}");
+    }
+
+    // Known mappings for common models
+    if name.contains("gemma-4-26b") || name.contains("gemma4-26b") {
+        return "mlx-community/gemma-4-26b-a4b-it-4bit".to_string();
+    }
+    if name.contains("gemma-3-4b") || name.contains("gemma3-4b") {
+        return "mlx-community/gemma-3-4b-it-4bit".to_string();
+    }
+
+    // Default: try mlx-community with -4bit suffix
+    format!("mlx-community/{name}-4bit")
 }
 
 fn write_chat_jsonl(path: &Path, samples: &[crate::corpus::sample::Sample]) -> Result<(), TrainingError> {

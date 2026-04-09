@@ -37,6 +37,7 @@ pub struct InferenceConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DecodingConfig {
     pub n_candidates: u16,
+    pub max_tokens: u32,
     pub contrastive_enabled: bool,
     pub contrastive_alpha: f32,
     pub banned_word_bias: f32,
@@ -93,6 +94,7 @@ impl Default for DecodingConfig {
     fn default() -> Self {
         Self {
             n_candidates: 8,
+            max_tokens: 4096,
             contrastive_enabled: true,
             contrastive_alpha: 0.3,
             banned_word_bias: -4.0,
@@ -108,10 +110,13 @@ impl Default for TrainingConfig {
             backend: "mlx-tune".into(),
             rank: 16,
             alpha: 32.0,
-            learning_rate: 1e-4,
-            batch_size: 4,
-            max_steps: 1000,
-            max_seq_len: 4096,
+            // Conservative defaults for large models (26B).
+            // Gemma 4 26B: batch=1, seq=2048, lr=2e-5.
+            // Smaller models can use batch=4, lr=1e-4.
+            learning_rate: 2e-5,
+            batch_size: 1,
+            max_steps: 500,
+            max_seq_len: 2048,
         }
     }
 }

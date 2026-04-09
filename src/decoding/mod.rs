@@ -25,7 +25,7 @@ use tokio_stream::StreamExt;
 use crate::backends::inference::request::GenerationRequest;
 use crate::backends::inference::response::GenerationEvent;
 use crate::backends::inference::InferenceBackend;
-use crate::backends::types::{ModelHandle, ModelId};
+use crate::backends::types::{AdapterRef, ModelHandle, ModelId};
 use crate::config::DecodingConfig;
 use crate::stylometry::fingerprint::StylometricFingerprint;
 use crate::stylometry::scoring;
@@ -58,6 +58,7 @@ pub async fn run(
     config: &DecodingConfig,
     prompt: &str,
     system_prompt: Option<&str>,
+    adapter: Option<&AdapterRef>,
 ) -> Result<GenerationResult, DecodingError> {
     let max_attempts = 3;
 
@@ -68,6 +69,11 @@ pub async fn run(
         let mut req = GenerationRequest::new(model_id.clone(), prompt.to_string())
             .with_logit_bias(bias)
             .with_n_candidates(config.n_candidates);
+        req.params.max_tokens = config.max_tokens;
+
+        if let Some(adapter) = adapter {
+            req = req.with_adapter(adapter.clone());
+        }
 
         if let Some(sys) = system_prompt {
             req.system_prompt = Some(sys.to_string());

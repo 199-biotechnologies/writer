@@ -1,8 +1,9 @@
 use serde::Serialize;
 
+use writer_cli::backends::inference::mlx::MlxBackend;
 use writer_cli::backends::inference::ollama::OllamaBackend;
 use writer_cli::backends::inference::InferenceBackend;
-use writer_cli::backends::types::ModelId;
+use writer_cli::backends::types::{AdapterRef, ModelId};
 use writer_cli::decoding;
 use writer_cli::decoding::prompts;
 use writer_cli::stylometry::fingerprint::StylometricFingerprint;
@@ -15,6 +16,8 @@ use crate::output::{self, Ctx};
 struct WriteResult {
     text: String,
     model: String,
+    backend: String,
+    adapter: Option<String>,
     tokens_generated: u32,
     elapsed_ms: u64,
     stylometric_distance: f64,
@@ -22,27 +25,67 @@ struct WriteResult {
     regenerations: usize,
 }
 
+/// Detect the canonical adapter for the active profile.
+/// Only uses the `adapters/` directory — adapter must be trained for
+/// the currently configured base model. Legacy `adapters-*/` checkpoint
+/// directories are ignored to avoid model/adapter mismatches.
+fn detect_adapter(profile_dir: &std::path::Path) -> Option<AdapterRef> {
+    let canonical = profile_dir.join("adapters");
+    if canonical.join("adapters.safetensors").exists() {
+        return Some(AdapterRef::new(
+            profile_dir
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string(),
+            canonical,
+        ));
+    }
+    None
+}
+
 pub async fn run(ctx: Ctx, prompt: String) -> Result<(), AppError> {
     let cfg = config::load()?;
-    let backend = OllamaBackend::new(&cfg.inference.ollama_url);
-
-    backend
-        .ping()
-        .await
-        .map_err(|e| AppError::Transient(e.to_string()))?;
 
     let model_id: ModelId = cfg
         .base_model
         .parse()
         .map_err(|e| AppError::Config(format!("Invalid base_model in config: {e}")))?;
 
-    let handle = backend
+    let profile_dir = config::profiles_dir().join(&cfg.active_profile);
+    let adapter = detect_adapter(&profile_dir);
+
+    // Choose backend: MLX when adapter present (safetensors), Ollama otherwise
+    let (backend_box, backend_name): (Box<dyn InferenceBackend>, &str) = if adapter.is_some() {
+        match MlxBackend::new() {
+            Ok(mlx) => (Box::new(mlx), "mlx"),
+            Err(e) => {
+                eprintln!(
+                    "Warning: adapter found but MLX backend unavailable ({e}), falling back to Ollama"
+                );
+                let ollama = OllamaBackend::new(&cfg.inference.ollama_url);
+                ollama
+                    .ping()
+                    .await
+                    .map_err(|e| AppError::Transient(e.to_string()))?;
+                (Box::new(ollama), "ollama")
+            }
+        }
+    } else {
+        let ollama = OllamaBackend::new(&cfg.inference.ollama_url);
+        ollama
+            .ping()
+            .await
+            .map_err(|e| AppError::Transient(e.to_string()))?;
+        (Box::new(ollama), "ollama")
+    };
+
+    let handle = backend_box
         .load_model(&model_id)
         .await
         .map_err(|e| AppError::Transient(e.to_string()))?;
 
     // Load fingerprint if available
-    let profile_dir = config::profiles_dir().join(&cfg.active_profile);
     let fp_path = profile_dir.join("fingerprint.json");
     let fingerprint = if fp_path.exists() {
         let fp_json = std::fs::read_to_string(&fp_path)?;
@@ -61,15 +104,16 @@ pub async fn run(ctx: Ctx, prompt: String) -> Result<(), AppError> {
 
     let write_prompt = prompts::write_prompt(&prompt);
 
-    // Run through decoding pipeline
+    // Run through decoding pipeline (adapter is passed via the request)
     let result = decoding::run(
-        &backend,
+        backend_box.as_ref(),
         &handle,
         &model_id,
         &fingerprint,
         &cfg.decoding,
         &write_prompt,
         system.as_deref(),
+        adapter.as_ref(),
     )
     .await
     .map_err(|e| AppError::Transient(e.to_string()))?;
@@ -82,6 +126,8 @@ pub async fn run(ctx: Ctx, prompt: String) -> Result<(), AppError> {
     let output_result = WriteResult {
         text: result.text,
         model: model_id.to_string(),
+        backend: backend_name.to_string(),
+        adapter: adapter.as_ref().map(|a| a.path.display().to_string()),
         tokens_generated: result.tokens_generated,
         elapsed_ms: result.elapsed_ms,
         stylometric_distance: result.distance,
