@@ -52,6 +52,12 @@ impl Sample {
     pub fn char_count(&self) -> usize {
         self.content.chars().count()
     }
+
+    /// Apply a transformation to content, preserving metadata and recomputing hash.
+    pub fn map_content(self, f: impl FnOnce(String) -> String) -> Self {
+        let content = f(self.content);
+        Self::new(content, self.metadata)
+    }
 }
 
 fn hash_content(s: &str) -> String {
