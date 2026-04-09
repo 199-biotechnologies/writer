@@ -22,7 +22,8 @@ fn has_json_flag() -> bool {
     std::env::args_os().any(|a| a == "--json")
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let json_flag = has_json_flag();
 
     let cli = match Cli::try_parse() {
@@ -55,7 +56,7 @@ fn main() {
 
     let result = match cli.command {
         Commands::Init => commands::init::run(ctx),
-        Commands::Learn { files } => commands::learn::run(ctx, files),
+        Commands::Learn { files } => commands::learn::run(ctx, files),  // TODO: async ingest in future
         Commands::Profile { action } => match action {
             ProfileAction::Show => commands::profile::show(ctx),
             ProfileAction::List => commands::profile::list(ctx),
@@ -63,13 +64,13 @@ fn main() {
             ProfileAction::New { name } => commands::profile::new_profile(ctx, name),
         },
         Commands::Train { profile } => commands::train::run(ctx, profile),
-        Commands::Write { prompt } => commands::write::run(ctx, prompt),
+        Commands::Write { prompt } => commands::write::run(ctx, prompt).await,
         Commands::Rewrite { file, in_place } => {
-            commands::rewrite::run(ctx, file, in_place)
+            commands::rewrite::run(ctx, file, in_place).await
         }
         Commands::Model { action } => match action {
-            ModelAction::List => commands::model::list(ctx),
-            ModelAction::Pull { name } => commands::model::pull(ctx, name),
+            ModelAction::List => commands::model::list(ctx).await,
+            ModelAction::Pull { name } => commands::model::pull(ctx, name).await,
         },
         Commands::AgentInfo => {
             commands::agent_info::run();

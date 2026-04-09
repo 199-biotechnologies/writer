@@ -96,20 +96,41 @@ impl OllamaBackend {
     }
 
     fn model_id_to_ollama_tag(model: &ModelId) -> String {
-        // Translate writer's owner/name format to Ollama tags
+        // Translate writer's owner/name format to Ollama tags.
+        // Writer uses "owner/name" (e.g. "qwen/qwen3.5-9b") but Ollama
+        // uses its own format (e.g. "qwen3.5:9b").
         let name = model.name();
         let owner = model.owner();
 
-        // Common mappings
+        // Strategy: if name contains a hyphen before a size indicator,
+        // try converting to Ollama's colon format
         match (owner, name) {
-            ("google", n) if n.contains("gemma-4") || n.contains("gemma4") => {
-                // google/gemma-4-26b-a4b -> try gemma3:26b-a4b or gemma4:26b-a4b
-                let tag = n.replace("gemma-4-", "gemma3:");
-                tag
+            ("google", n) if n.contains("gemma") => {
+                // google/gemma-4-26b-a4b -> gemma4:26b-a4b
+                // google/gemma-3-27b -> gemma3:27b
+                n.replacen('-', ":", 1)
+            }
+            ("qwen", n) if n.starts_with("qwen") => {
+                // qwen/qwen3.5-9b -> qwen3.5:9b
+                if let Some(pos) = n.rfind('-') {
+                    let (base, size) = n.split_at(pos);
+                    format!("{base}:{}", &size[1..])
+                } else {
+                    n.to_string()
+                }
+            }
+            ("meta", n) if n.starts_with("llama") => {
+                // meta/llama3.2-3b -> llama3.2:3b
+                if let Some(pos) = n.rfind('-') {
+                    let (base, size) = n.split_at(pos);
+                    format!("{base}:{}", &size[1..])
+                } else {
+                    n.to_string()
+                }
             }
             _ => {
-                // Generic: try owner/name first, then just name
-                format!("{owner}/{name}")
+                // Try direct name, then owner/name
+                name.to_string()
             }
         }
     }

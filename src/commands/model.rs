@@ -1,58 +1,59 @@
 use serde::Serialize;
 
+use writer_cli::backends::inference::ollama::OllamaBackend;
+use writer_cli::backends::inference::InferenceBackend;
+use writer_cli::backends::types::ModelId;
+use crate::config;
 use crate::error::AppError;
 use crate::output::{self, Ctx};
 
 #[derive(Serialize)]
 struct ModelEntry {
     name: String,
-    params: String,
-    size: String,
     downloaded: bool,
+    size_bytes: Option<u64>,
 }
 
-pub fn list(ctx: Ctx) -> Result<(), AppError> {
-    let models = vec![
-        ModelEntry {
-            name: "llama-3.2-1b-instruct".into(),
-            params: "1B".into(),
-            size: "~700 MB".into(),
-            downloaded: false,
-        },
-        ModelEntry {
-            name: "llama-3.2-3b-instruct".into(),
-            params: "3B".into(),
-            size: "~2 GB".into(),
-            downloaded: false,
-        },
-        ModelEntry {
-            name: "qwen2.5-1.5b-instruct".into(),
-            params: "1.5B".into(),
-            size: "~900 MB".into(),
-            downloaded: false,
-        },
-        ModelEntry {
-            name: "qwen2.5-3b-instruct".into(),
-            params: "3B".into(),
-            size: "~1.9 GB".into(),
-            downloaded: false,
-        },
-    ];
+pub async fn list(ctx: Ctx) -> Result<(), AppError> {
+    let cfg = config::load()?;
+    let backend = OllamaBackend::new(&cfg.inference.ollama_url);
 
-    output::print_success_or(ctx, &models, |list| {
+    backend
+        .ping()
+        .await
+        .map_err(|e| AppError::Transient(e.to_string()))?;
+
+    let models = backend
+        .list_models()
+        .await
+        .map_err(|e| AppError::Transient(e.to_string()))?;
+
+    let entries: Vec<ModelEntry> = models
+        .into_iter()
+        .map(|m| ModelEntry {
+            name: m.id.to_string(),
+            downloaded: m.is_downloaded,
+            size_bytes: m.size_bytes,
+        })
+        .collect();
+
+    output::print_success_or(ctx, &entries, |list| {
         use owo_colors::OwoColorize;
         let mut table = comfy_table::Table::new();
-        table.set_header(vec!["Model", "Params", "Size", "Downloaded"]);
+        table.set_header(vec!["Model", "Downloaded", "Size"]);
         for m in list {
+            let size = m
+                .size_bytes
+                .map(|b| format!("{:.1} GB", b as f64 / 1_000_000_000.0))
+                .unwrap_or_else(|| "unknown".into());
             table.add_row(vec![
                 m.name.clone(),
-                m.params.clone(),
-                m.size.clone(),
                 if m.downloaded {
                     "yes".green().to_string()
                 } else {
                     "no".dimmed().to_string()
                 },
+                size,
             ]);
         }
         println!("{table}");
@@ -61,8 +62,44 @@ pub fn list(ctx: Ctx) -> Result<(), AppError> {
     Ok(())
 }
 
-pub fn pull(_ctx: Ctx, _name: String) -> Result<(), AppError> {
-    Err(AppError::Transient(
-        "model pull: model download is on the v0.2 milestone. See https://github.com/199-biotechnologies/writer/milestones".into()
-    ))
+pub async fn pull(ctx: Ctx, name: String) -> Result<(), AppError> {
+    let cfg = config::load()?;
+    let backend = OllamaBackend::new(&cfg.inference.ollama_url);
+
+    backend
+        .ping()
+        .await
+        .map_err(|e| AppError::Transient(e.to_string()))?;
+
+    let model_id: ModelId = name
+        .parse()
+        .map_err(|e| AppError::InvalidInput(format!("Invalid model name: {e}")))?;
+
+    if !ctx.format.is_json() {
+        use owo_colors::OwoColorize;
+        println!("{} pulling {}...", ">".blue(), model_id);
+    }
+
+    let handle = backend
+        .load_model(&model_id)
+        .await
+        .map_err(|e| AppError::Transient(e.to_string()))?;
+
+    #[derive(Serialize)]
+    struct PullResult {
+        model: String,
+        handle: String,
+    }
+
+    let result = PullResult {
+        model: model_id.to_string(),
+        handle: handle.0,
+    };
+
+    output::print_success_or(ctx, &result, |r| {
+        use owo_colors::OwoColorize;
+        println!("{} model ready: {}", "+".green(), r.model);
+    });
+
+    Ok(())
 }

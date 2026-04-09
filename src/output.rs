@@ -25,6 +25,10 @@ impl Format {
             Format::Human
         }
     }
+
+    pub fn is_json(self) -> bool {
+        matches!(self, Format::Json)
+    }
 }
 
 // ── Output context ─────────────────────────────────────────────────────────
