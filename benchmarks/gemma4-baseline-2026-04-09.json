@@ -1,0 +1,35 @@
+{
+  "date": "2026-04-09",
+  "model": "gemma4:26b",
+  "model_params": "25.2B total, 3.8B active (MoE)",
+  "ollama_version": "0.20.4",
+  "backend": "MLX (Apple Silicon M4 Max 64GB)",
+  "corpus": "Douglas Adams (9 books, 684K words, 492 samples)",
+  "generation_samples": {
+    "depressed_robot_tea": {
+      "distance": 0.297,
+      "tokens": 1599,
+      "regenerations": 0,
+      "time_ms": "~25000"
+    }
+  },
+  "decoding_config": {
+    "n_candidates": 2,
+    "logit_bias": true,
+    "stylometric_priming": true,
+    "max_tokens": 4096,
+    "api": "/api/chat (thinking model)"
+  },
+  "comparison": {
+    "gemma3_4b_mean_distance": 0.282,
+    "gemma4_26b_single_sample": 0.297,
+    "held_out_adams_baseline": 0.121,
+    "target_with_lora": 0.15
+  },
+  "notes": [
+    "Gemma 4 26B is a thinking model - needs /api/chat endpoint",
+    "Requires 4096+ max_tokens to complete thinking + response",
+    "Multi-candidate generation is slow (~25s per candidate)",
+    "Quality prose but needs LoRA to match Adams voice"
+  ]
+}
