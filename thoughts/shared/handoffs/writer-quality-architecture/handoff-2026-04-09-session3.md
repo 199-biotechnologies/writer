@@ -219,3 +219,25 @@ ollama list
 ```
 
 Expected: clean tree, Gemma 4 26B in model list, generation working, benchmark producing combined score ~0.88 on smoke test.
+
+---
+
+## ADDENDUM: Late Session Progress
+
+### LoRA Training Verified
+- `mlx_lm.lora` training works end-to-end on M4 Max
+- 200 steps on `mlx-community/gemma-3-4b-it-4bit`, loss 3.34→2.33
+- Adapter at `profiles/default/adapters-gemma3-200/adapters.safetensors`
+- Generation shows Adams-like structure but needs diversity fixes
+
+### Codex Fixes Applied
+- SVG stripping: now handles inline single-line blocks
+- candidate_index: uses BTreeMap for deterministic ordering
+- slop_penalty: counts occurrences, not just presence
+- Error handling: one bad candidate no longer kills all
+
+### Remaining for Autoresearch Loop
+1. Wire `writer-bench` to generate text via Ollama and score it (currently only scores held-out)
+2. Fix Gemma 4 HF download (needs auth or use `mlx-community/gemma-4-26b-a4b-it-4bit` — may need `huggingface-cli login`)
+3. Train 1000+ steps with seq_length 2048 on Gemma 4
+4. Start autoresearch: iterate on decoding params, training hyperparams, prompt templates
