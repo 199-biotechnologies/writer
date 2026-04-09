@@ -64,7 +64,7 @@ async fn main() {
             ProfileAction::Use { name } => commands::profile::use_profile(ctx, name),
             ProfileAction::New { name } => commands::profile::new_profile(ctx, name),
         },
-        Commands::Train { profile } => commands::train::run(ctx, profile),
+        Commands::Train { profile } => commands::train::run(ctx, profile).await,
         Commands::Write { prompt } => commands::write::run(ctx, prompt).await,
         Commands::Rewrite { file, in_place } => {
             commands::rewrite::run(ctx, file, in_place).await

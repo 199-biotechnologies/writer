@@ -1,6 +1,7 @@
 //! Training backends (mlx-tune, unsloth, ...).
 pub mod artefact;
 pub mod config;
+pub mod mlx_tune;
 
 use async_trait::async_trait;
 
