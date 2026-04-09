@@ -58,6 +58,10 @@ pub enum Commands {
         /// Number of candidates to generate and rank (default: from config)
         #[arg(long, short = 'n')]
         candidates: Option<u16>,
+
+        /// Include model, timing, and quality details in JSON output
+        #[arg(long, short = 'v')]
+        verbose: bool,
     },
 
     /// Rewrite a file in the active voice

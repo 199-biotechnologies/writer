@@ -15,14 +15,18 @@ use crate::output::{self, Ctx};
 #[derive(Serialize)]
 struct WriteResult {
     text: String,
+}
+
+#[derive(Serialize)]
+struct WriteResultVerbose {
+    text: String,
+    distance: f64,
     model: String,
+    adapter: bool,
     backend: String,
-    adapter: Option<String>,
-    tokens_generated: u32,
+    tokens: u32,
     elapsed_ms: u64,
-    stylometric_distance: f64,
-    candidates_generated: usize,
-    regenerations: usize,
+    candidates: usize,
 }
 
 /// Detect the canonical adapter for the active profile.
@@ -49,6 +53,7 @@ pub async fn run(
     prompt: String,
     max_tokens_override: Option<u32>,
     candidates_override: Option<u16>,
+    verbose: bool,
 ) -> Result<(), AppError> {
     let mut cfg = config::load()?;
 
@@ -134,22 +139,23 @@ pub async fn run(
     if !ctx.format.is_json() {
         print!("{}", result.text);
         println!();
-    }
-
-    let output_result = WriteResult {
-        text: result.text,
-        model: model_id.to_string(),
-        backend: backend_name.to_string(),
-        adapter: adapter.as_ref().map(|a| a.path.display().to_string()),
-        tokens_generated: result.tokens_generated,
-        elapsed_ms: result.elapsed_ms,
-        stylometric_distance: result.distance,
-        candidates_generated: result.candidates_generated,
-        regenerations: result.regenerations,
-    };
-
-    if ctx.format.is_json() {
-        output::print_success_or(ctx, &output_result, |_| {});
+    } else if verbose {
+        let output = WriteResultVerbose {
+            text: result.text,
+            distance: (result.distance * 1000.0).round() / 1000.0,
+            model: model_id.to_string(),
+            adapter: adapter.is_some(),
+            backend: backend_name.to_string(),
+            tokens: result.tokens_generated,
+            elapsed_ms: result.elapsed_ms,
+            candidates: result.candidates_generated,
+        };
+        output::print_success_or(ctx, &output, |_| {});
+    } else {
+        let output = WriteResult {
+            text: result.text,
+        };
+        output::print_success_or(ctx, &output, |_| {});
     }
 
     Ok(())
