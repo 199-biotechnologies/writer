@@ -32,11 +32,15 @@ The model runs locally via [Ollama](https://ollama.com/) on Apple Silicon. Defau
 
 ## Why this exists
 
-AI writing has a detectable fingerprint. Run any model's output through a stylometric scanner and the same tells show up: em-dashes instead of commas, transitions starting with "Moreover," paragraphs built around the rule of three, sentences with identical rhythm, closing lines that wrap the whole thing in a neat bow. The "humanise this text" industry exists because the tells are that obvious.
+LLMs made text generation better and language worse. The logic improved. The prose collapsed. Every model trained on the same web-scale corpus converges on the same voice -- the same em-dashes, the same "Moreover, it is important to note that," the same rule-of-three bullet points, the same careful neutrality that offends no one and moves no one. A billion people now write with the same vocabulary, the same rhythm, the same structural habits. Language used to be rich. Now it is uniform.
 
-Humanising after the fact is a patch. You are fighting the model's entire training distribution on every call. The real fix is to train a model that never had those tells in the first place -- one that learned what sentences look like from *your* writing, not from the open web.
+The humanisation industry exists because the problem is that obvious. But humanising after the fact is a patch. You fight the model's entire training distribution on every call. And if everyone humanises the same way, the humanised output becomes the new slop -- a second layer of sameness on top of the first.
 
-That is what `writer` does. It treats your voice as a distribution you already own. Feed it 5-50k words of text you wrote. It extracts a stylometric fingerprint, trains a LoRA adapter on a small base model, and from then on every `writer write "..."` call is a sample from *your* distribution. No system prompt tricks. No "rewrite this to sound like me" prompts. The model just sounds like you now.
+The real fix is not to disguise AI text as human. It is to bring back diversity. To capture the fingerprint of a specific voice -- yours, or a writer you admire -- and generate from *that* distribution instead of the generic one. Douglas Adams did not write like Hemingway. Hemingway did not write like Woolf. The richness of language was never about correctness. It was about difference.
+
+That is what `writer` does. Feed it a corpus of text in a specific voice. It extracts a stylometric fingerprint -- sentence rhythm, vocabulary preferences, punctuation habits, the words the writer reaches for and the words they never use. It fine-tunes a small local model on that fingerprint. From then on, every `writer write "..."` call is a sample from *that* distribution. Not generic. Not humanised-generic. Distinctive.
+
+You can have multiple profiles. One trained on your own blog posts. One trained on Adams. One on your company's house style. Switch between them with `writer profile use <name>`. The model stays small, runs locally, and your writing samples never leave your machine.
 
 ## Install
 
