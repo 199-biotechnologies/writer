@@ -1,0 +1,43 @@
+{
+  "date": "2026-04-09",
+  "model": "gemma3:4b",
+  "corpus": "Douglas Adams (9 books, 684K words, 492 samples)",
+  "fingerprint": {
+    "word_count": 684089,
+    "vocabulary_size": 22653,
+    "sentence_length_mean": 6.8,
+    "yules_k": 85.33,
+    "hapax_legomena_ratio": 0.247,
+    "flesch_kincaid_grade": 3.94,
+    "em_dashes_per_1k": 1.28,
+    "questions_per_1k": 8.95,
+    "exclamations_per_1k": 5.24
+  },
+  "held_out_baseline": {
+    "combined_score": 0.883,
+    "voice_fidelity_distance": 0.121,
+    "slop_density": 0.044,
+    "n_samples": 50
+  },
+  "generation_baseline": {
+    "mean_distance": 0.282,
+    "min_distance": 0.222,
+    "max_distance": 0.332,
+    "n_prompts": 10,
+    "model": "gemma3:4b",
+    "decoding": {
+      "n_candidates": 8,
+      "logit_bias": true,
+      "stylometric_priming": true,
+      "contrastive_decoding": false,
+      "lora_adapter": false
+    }
+  },
+  "targets": {
+    "phase4_target_distance": 0.40,
+    "phase5_target_distance": 0.30,
+    "phase6_target_distance": 0.20,
+    "phase7_target_distance": 0.15,
+    "autoresearch_combined_target": 0.85
+  }
+}
