@@ -100,3 +100,52 @@ fn generation_request_with_adapter_and_bias() {
     // Silence unused-import warning when GenerationParams is not directly used.
     let _ = GenerationParams::default();
 }
+
+use writer_cli::backends::inference::response::{FinishReason, GenerationEvent, UsageStats};
+
+#[test]
+fn generation_event_token_carries_text_and_logprob() {
+    let evt = GenerationEvent::Token {
+        candidate_index: 0,
+        text: "raven".into(),
+        logprob: -1.2,
+    };
+    match evt {
+        GenerationEvent::Token {
+            candidate_index,
+            text,
+            logprob,
+        } => {
+            assert_eq!(candidate_index, 0);
+            assert_eq!(text, "raven");
+            assert!((logprob + 1.2).abs() < 1e-6);
+        }
+        _ => panic!("expected Token"),
+    }
+}
+
+#[test]
+fn generation_event_done_has_finish_reason_and_usage() {
+    let evt = GenerationEvent::Done {
+        candidate_index: 0,
+        finish_reason: FinishReason::Stop,
+        usage: UsageStats {
+            prompt_tokens: 42,
+            generated_tokens: 168,
+            elapsed_ms: 1234,
+        },
+        full_text: "raven are clever birds".into(),
+    };
+    if let GenerationEvent::Done {
+        usage,
+        finish_reason,
+        ..
+    } = evt
+    {
+        assert_eq!(finish_reason, FinishReason::Stop);
+        assert_eq!(usage.prompt_tokens, 42);
+        assert_eq!(usage.generated_tokens, 168);
+    } else {
+        panic!("expected Done");
+    }
+}
