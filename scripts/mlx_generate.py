@@ -124,7 +124,7 @@ def main():
         sampler=sampler,
     )
     if logits_processor is not None:
-        gen_kwargs["logits_processor"] = logits_processor
+        gen_kwargs["logits_processors"] = [logits_processor]
 
     full_text = ""
     last_resp = None
