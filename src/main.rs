@@ -74,6 +74,9 @@ async fn main() {
         Commands::BuildLexicon { profile, min_count, max_terms } => {
             commands::build_lexicon::run(ctx, profile, min_count, max_terms)
         }
+        Commands::Ablation { steps, seeds, suite, output, eval_only } => {
+            commands::ablation::run(ctx, steps, seeds, suite, output, eval_only).await
+        }
         Commands::Rewrite { file, in_place } => {
             commands::rewrite::run(ctx, file, in_place).await
         }

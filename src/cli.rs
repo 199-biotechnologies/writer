@@ -102,6 +102,29 @@ pub enum Commands {
         output: std::path::PathBuf,
     },
 
+    /// Run format ablation: train 3 adapters, evaluate under multiple modes
+    Ablation {
+        /// Training steps per adapter (default: 100 for quick ablation)
+        #[arg(long, default_value = "100")]
+        steps: u32,
+
+        /// Seeds per prompt during evaluation
+        #[arg(long, default_value = "4")]
+        seeds: u16,
+
+        /// Path to prompt suite (default: prompts.yaml)
+        #[arg(long, default_value = "prompts.yaml")]
+        suite: std::path::PathBuf,
+
+        /// Output directory for all results
+        #[arg(long, short = 'o', default_value = "ablation_results")]
+        output: std::path::PathBuf,
+
+        /// Skip training, only run evaluation (assumes adapters exist)
+        #[arg(long)]
+        eval_only: bool,
+    },
+
     /// Extract canon lexicon (named entities + high-PMI terms) from corpus
     BuildLexicon {
         /// Profile to extract from (defaults to active)
