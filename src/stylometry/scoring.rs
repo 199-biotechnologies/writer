@@ -52,7 +52,8 @@ pub struct DistanceReport {
 pub fn distance(text: &str, fingerprint: &StylometricFingerprint) -> DistanceReport {
     let sentence_length_dist = sentence_length_divergence(text, fingerprint);
     let function_word_cos = function_word_distance(text, fingerprint);
-    let (terminal_punct_dist, structural_punct_dist) = punctuation_distance_split(text, fingerprint);
+    let (terminal_punct_dist, structural_punct_dist) =
+        punctuation_distance_split(text, fingerprint);
     let ngram_cos = ngram_distance(text, fingerprint);
     let readability_diff = readability_distance(text, fingerprint);
     let richness_diff = richness_distance(text, fingerprint);
@@ -104,7 +105,8 @@ fn sentence_length_divergence(text: &str, fp: &StylometricFingerprint) -> f64 {
     }
 
     // Legacy fallback: simplified divergence using mean and SD
-    let mean_diff = ((text_stats.mean - fp.sentence_length.mean) / fp.sentence_length.mean.max(1.0)).abs();
+    let mean_diff =
+        ((text_stats.mean - fp.sentence_length.mean) / fp.sentence_length.mean.max(1.0)).abs();
     let sd_diff = if fp.sentence_length.sd > 0.0 {
         ((text_stats.sd - fp.sentence_length.sd) / fp.sentence_length.sd).abs()
     } else {
@@ -164,7 +166,8 @@ fn punctuation_distance_split(text: &str, fp: &StylometricFingerprint) -> (f64, 
         (text_punct.questions_per_1k - fp_p.questions_per_1k).abs() / 10.0,
         (text_punct.exclamations_per_1k - fp_p.exclamations_per_1k).abs() / 10.0,
     ];
-    let terminal = (terminal_diffs.iter().sum::<f64>() / terminal_diffs.len() as f64).clamp(0.0, 1.0);
+    let terminal =
+        (terminal_diffs.iter().sum::<f64>() / terminal_diffs.len() as f64).clamp(0.0, 1.0);
 
     // Structural: em-dashes, semicolons, colons, parens (en_dashes excluded)
     let structural_diffs = [
@@ -173,7 +176,8 @@ fn punctuation_distance_split(text: &str, fp: &StylometricFingerprint) -> (f64, 
         (text_punct.colons_per_1k - fp_p.colons_per_1k).abs() / 10.0,
         (text_punct.parentheses_per_1k - fp_p.parentheses_per_1k).abs() / 20.0,
     ];
-    let structural = (structural_diffs.iter().sum::<f64>() / structural_diffs.len() as f64).clamp(0.0, 1.0);
+    let structural =
+        (structural_diffs.iter().sum::<f64>() / structural_diffs.len() as f64).clamp(0.0, 1.0);
 
     (terminal, structural)
 }
@@ -204,11 +208,8 @@ fn ngram_distance(text: &str, fp: &StylometricFingerprint) -> f64 {
         .map(|(g, c)| (g.as_str(), *c as f64 / text_total as f64))
         .collect();
 
-    let all_keys: std::collections::HashSet<&str> = fp_map
-        .keys()
-        .chain(text_map.keys())
-        .copied()
-        .collect();
+    let all_keys: std::collections::HashSet<&str> =
+        fp_map.keys().chain(text_map.keys()).copied().collect();
 
     let mut dot = 0.0;
     let mut norm_a = 0.0;
@@ -236,19 +237,25 @@ fn readability_distance(text: &str, fp: &StylometricFingerprint) -> f64 {
 
     // Normalized differences for each readability metric
     let fk_diff = if fp_r.flesch_kincaid_grade.abs() > 0.1 {
-        ((text_stats.flesch_kincaid_grade - fp_r.flesch_kincaid_grade) / fp_r.flesch_kincaid_grade.abs().max(1.0)).abs()
+        ((text_stats.flesch_kincaid_grade - fp_r.flesch_kincaid_grade)
+            / fp_r.flesch_kincaid_grade.abs().max(1.0))
+        .abs()
     } else {
         0.0
     };
 
     let cli_diff = if fp_r.coleman_liau_index.abs() > 0.1 {
-        ((text_stats.coleman_liau_index - fp_r.coleman_liau_index) / fp_r.coleman_liau_index.abs().max(1.0)).abs()
+        ((text_stats.coleman_liau_index - fp_r.coleman_liau_index)
+            / fp_r.coleman_liau_index.abs().max(1.0))
+        .abs()
     } else {
         0.0
     };
 
     let syllable_diff = if fp_r.avg_syllables_per_word > 0.0 {
-        ((text_stats.avg_syllables_per_word - fp_r.avg_syllables_per_word) / fp_r.avg_syllables_per_word).abs()
+        ((text_stats.avg_syllables_per_word - fp_r.avg_syllables_per_word)
+            / fp_r.avg_syllables_per_word)
+            .abs()
     } else {
         0.0
     };

@@ -77,8 +77,8 @@ fn run_benchmarks(json_output: bool, smoke: bool) {
             method: "none".into(),
         }
     } else {
-        let avg_density =
-            slop_results.iter().map(|r| r.ai_density_score).sum::<f64>() / slop_results.len() as f64;
+        let avg_density = slop_results.iter().map(|r| r.ai_density_score).sum::<f64>()
+            / slop_results.len() as f64;
         let total_words: usize = slop_results.iter().map(|r| r.flagged_words).sum();
         let total_phrases: usize = slop_results.iter().map(|r| r.flagged_phrases).sum();
         slop_score::SlopScoreResult {
@@ -125,10 +125,7 @@ fn run_benchmarks(json_output: bool, smoke: bool) {
         println!("writer-bench results");
         println!("====================");
         println!();
-        println!(
-            "Combined score:      {:.3}",
-            combined.combined_score
-        );
+        println!("Combined score:      {:.3}", combined.combined_score);
         println!();
         println!(
             "VoiceFidelity:       {:.3} distance ({} samples)",
@@ -182,7 +179,10 @@ fn load_samples(dir: &std::path::Path) -> Vec<Sample> {
     if let Ok(entries) = std::fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().is_some_and(|e| e == "jsonl" || e == "json") {
+            if path
+                .extension()
+                .is_some_and(|e| e == "jsonl" || e == "json")
+            {
                 if let Ok(content) = std::fs::read_to_string(&path) {
                     for line in content.lines() {
                         if let Ok(sample) = serde_json::from_str::<Sample>(line) {
@@ -196,13 +196,9 @@ fn load_samples(dir: &std::path::Path) -> Vec<Sample> {
 
     // If no JSONL, try ingesting md files directly
     if samples.is_empty() {
-        if let Ok((ingested, _)) = ingest::ingest(
-            &[dir.to_path_buf()],
-            None,
-            4096,
-            &HashSet::new(),
-            true,
-        ) {
+        if let Ok((ingested, _)) =
+            ingest::ingest(&[dir.to_path_buf()], None, 4096, &HashSet::new(), true)
+        {
             samples = ingested;
         }
     }

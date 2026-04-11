@@ -3,7 +3,7 @@ use writer_cli::corpus::ingest;
 use writer_cli::corpus::normalize;
 use writer_cli::corpus::sample::{Sample, SampleMetadata, SampleSource};
 use writer_cli::corpus::sources::markdown::MarkdownSource;
-use writer_cli::corpus::sources::obsidian::{strip_wikilinks, ObsidianSource};
+use writer_cli::corpus::sources::obsidian::{ObsidianSource, strip_wikilinks};
 use writer_cli::corpus::sources::plain_text::PlainTextSource;
 use writer_cli::corpus::sources::{Source, SourceRegistry};
 
@@ -21,8 +21,14 @@ fn markdown_strips_front_matter_and_splits_headers() {
     assert!(source.matches(&file));
     let samples = source.parse(&file, None).unwrap();
     assert_eq!(samples.len(), 2);
-    assert_eq!(samples[0].metadata.context_tag.as_deref(), Some("Section One"));
-    assert_eq!(samples[1].metadata.context_tag.as_deref(), Some("Section Two"));
+    assert_eq!(
+        samples[0].metadata.context_tag.as_deref(),
+        Some("Section One")
+    );
+    assert_eq!(
+        samples[1].metadata.context_tag.as_deref(),
+        Some("Section Two")
+    );
     assert!(!samples[0].content.contains("title: Test"));
 }
 
@@ -30,7 +36,11 @@ fn markdown_strips_front_matter_and_splits_headers() {
 fn plain_text_strips_bom_and_chunks() {
     let dir = tempfile::tempdir().unwrap();
     let file = dir.path().join("test.txt");
-    std::fs::write(&file, "\u{FEFF}Hello world this is a test.\n\nAnother paragraph here with more content.").unwrap();
+    std::fs::write(
+        &file,
+        "\u{FEFF}Hello world this is a test.\n\nAnother paragraph here with more content.",
+    )
+    .unwrap();
 
     let source = PlainTextSource;
     assert!(source.matches(&file));
@@ -42,8 +52,14 @@ fn plain_text_strips_bom_and_chunks() {
 
 #[test]
 fn obsidian_strips_wikilinks() {
-    assert_eq!(strip_wikilinks("See [[my note]] for details"), "See my note for details");
-    assert_eq!(strip_wikilinks("See [[path/to/note|display text]]"), "See display text");
+    assert_eq!(
+        strip_wikilinks("See [[my note]] for details"),
+        "See my note for details"
+    );
+    assert_eq!(
+        strip_wikilinks("See [[path/to/note|display text]]"),
+        "See display text"
+    );
     assert_eq!(strip_wikilinks("No links here"), "No links here");
 }
 
@@ -66,10 +82,15 @@ fn obsidian_parses_vault() {
     let samples = source.parse(dir.path(), None).unwrap();
     assert!(samples.len() >= 2);
 
-    let journal = samples.iter().find(|s| s.metadata.context_tag.as_deref() == Some("journal"));
+    let journal = samples
+        .iter()
+        .find(|s| s.metadata.context_tag.as_deref() == Some("journal"));
     assert!(journal.is_some(), "should detect daily note");
 
-    let notes = samples.iter().find(|s| s.metadata.context_tag.as_deref() == Some("notes") || s.metadata.context_tag.as_deref() == Some("My Note"));
+    let notes = samples.iter().find(|s| {
+        s.metadata.context_tag.as_deref() == Some("notes")
+            || s.metadata.context_tag.as_deref() == Some("My Note")
+    });
     assert!(notes.is_some(), "should have regular notes");
     assert!(!notes.unwrap().content.contains("[["));
 }
@@ -102,7 +123,8 @@ fn ingest_pipeline_processes_directory() {
     std::fs::write(
         dir.path().join("note.md"),
         "# Title\n\nSome content here that is long enough to be a valid writing sample.\n",
-    ).unwrap();
+    )
+    .unwrap();
 
     let (samples, report) = ingest::ingest(
         &[dir.path().to_path_buf()],
@@ -110,7 +132,8 @@ fn ingest_pipeline_processes_directory() {
         4096,
         &HashSet::new(),
         true,
-    ).unwrap();
+    )
+    .unwrap();
 
     assert!(!samples.is_empty());
     assert!(report.samples_added > 0);
@@ -124,7 +147,8 @@ fn dedupe_skips_duplicates() {
     std::fs::write(
         &file,
         "# Title\n\nThis is some content that should appear only once in the final corpus.\n",
-    ).unwrap();
+    )
+    .unwrap();
 
     let (samples1, _) = ingest::ingest(
         &[dir.path().to_path_buf()],
@@ -132,17 +156,13 @@ fn dedupe_skips_duplicates() {
         4096,
         &HashSet::new(),
         true,
-    ).unwrap();
+    )
+    .unwrap();
 
     let existing: HashSet<String> = samples1.iter().map(|s| s.content_hash.clone()).collect();
 
-    let (samples2, report2) = ingest::ingest(
-        &[dir.path().to_path_buf()],
-        None,
-        4096,
-        &existing,
-        true,
-    ).unwrap();
+    let (samples2, report2) =
+        ingest::ingest(&[dir.path().to_path_buf()], None, 4096, &existing, true).unwrap();
 
     assert_eq!(samples2.len(), 0);
     assert!(report2.samples_skipped_dedupe > 0);

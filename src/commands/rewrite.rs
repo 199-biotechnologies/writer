@@ -2,14 +2,14 @@ use serde::Serialize;
 use std::path::PathBuf;
 use tokio_stream::StreamExt;
 
-use writer_cli::backends::inference::ollama::OllamaBackend;
-use writer_cli::backends::inference::request::GenerationRequest;
-use writer_cli::backends::inference::response::GenerationEvent;
-use writer_cli::backends::inference::InferenceBackend;
-use writer_cli::backends::types::ModelId;
 use crate::config;
 use crate::error::AppError;
 use crate::output::{self, Ctx};
+use writer_cli::backends::inference::InferenceBackend;
+use writer_cli::backends::inference::ollama::OllamaBackend;
+use writer_cli::backends::inference::request::GenerationRequest;
+use writer_cli::backends::inference::response::GenerationEvent;
+use writer_cli::backends::types::ModelId;
 
 #[derive(Serialize)]
 struct RewriteResult {
@@ -29,7 +29,10 @@ pub async fn run(ctx: Ctx, file: PathBuf, in_place: bool) -> Result<(), AppError
     let cfg = config::load()?;
     let backend = OllamaBackend::new(&cfg.inference.ollama_url);
 
-    backend.ping().await.map_err(|e| AppError::Transient(e.to_string()))?;
+    backend
+        .ping()
+        .await
+        .map_err(|e| AppError::Transient(e.to_string()))?;
 
     let model_id: ModelId = cfg
         .base_model
@@ -43,8 +46,7 @@ pub async fn run(ctx: Ctx, file: PathBuf, in_place: bool) -> Result<(), AppError
 
     let prompt = format!("{REWRITE_PROMPT}{content}\n\nREWRITTEN:");
 
-    let req = GenerationRequest::new(model_id.clone(), prompt)
-        .with_n_candidates(1);
+    let req = GenerationRequest::new(model_id.clone(), prompt).with_n_candidates(1);
 
     let mut stream = backend
         .generate(&handle, req)

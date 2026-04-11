@@ -29,10 +29,7 @@ pub struct RichnessStats {
 
 impl RichnessStats {
     pub fn compute(text: &str) -> Self {
-        let words: Vec<String> = text
-            .unicode_words()
-            .map(|w| w.to_lowercase())
-            .collect();
+        let words: Vec<String> = text.unicode_words().map(|w| w.to_lowercase()).collect();
 
         let n = words.len() as f64;
         if n == 0.0 {
@@ -72,10 +69,7 @@ impl RichnessStats {
         };
 
         // Simpson's D = 1 - sum(n_i * (n_i - 1)) / (N * (N - 1))
-        let sum_ni: f64 = freq
-            .values()
-            .map(|&ni| ni as f64 * (ni as f64 - 1.0))
-            .sum();
+        let sum_ni: f64 = freq.values().map(|&ni| ni as f64 * (ni as f64 - 1.0)).sum();
         let simpsons_d = if n > 1.0 {
             1.0 - sum_ni / (n * (n - 1.0))
         } else {

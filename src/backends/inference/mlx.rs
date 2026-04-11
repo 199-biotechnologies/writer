@@ -132,7 +132,10 @@ impl MlxBackend {
             adapter_path: adapter_path.map(|p| p.to_string_lossy().to_string()),
             prompt: request.prompt.clone(),
             system_prompt: request.system_prompt.clone(),
-            prompt_mode: request.prompt_mode.clone().unwrap_or_else(|| "chat".to_string()),
+            prompt_mode: request
+                .prompt_mode
+                .clone()
+                .unwrap_or_else(|| "chat".to_string()),
             max_tokens: request.params.max_tokens,
             temperature: request.params.temperature,
             top_p: request.params.top_p,

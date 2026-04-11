@@ -37,8 +37,7 @@ impl Source for ObsidianSource {
             let cleaned = strip_wikilinks(&content);
             let cleaned = strip_dataview_blocks(&cleaned);
 
-            let mut samples =
-                markdown::parse_markdown(&cleaned, &entry_path, Some(note_context));
+            let mut samples = markdown::parse_markdown(&cleaned, &entry_path, Some(note_context));
 
             for sample in &mut samples {
                 sample.metadata.source = SampleSource::Obsidian;
@@ -66,10 +65,7 @@ fn walk_recursive(dir: &Path, files: &mut Vec<std::path::PathBuf>) -> Result<(),
 
         // Skip hidden dirs, .trash, .obsidian, templates
         if path.is_dir() {
-            if name_str.starts_with('.')
-                || name_str == "templates"
-                || name_str == ".trash"
-            {
+            if name_str.starts_with('.') || name_str == "templates" || name_str == ".trash" {
                 continue;
             }
             walk_recursive(&path, files)?;
@@ -85,8 +81,7 @@ fn detect_daily_note(content: &str) -> bool {
     if let Some(rest) = content.strip_prefix("---") {
         if let Some(end) = rest.find("---") {
             let front_matter = &rest[..end].to_lowercase();
-            return front_matter.contains("daily")
-                || front_matter.contains("journal");
+            return front_matter.contains("daily") || front_matter.contains("journal");
         }
     }
     false

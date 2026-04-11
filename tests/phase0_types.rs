@@ -61,9 +61,7 @@ fn capabilities_builder_sets_flags() {
 }
 
 use std::collections::HashMap;
-use writer_cli::backends::inference::request::{
-    GenerationParams, GenerationRequest, LogitBiasMap,
-};
+use writer_cli::backends::inference::request::{GenerationParams, GenerationRequest, LogitBiasMap};
 
 #[test]
 fn generation_request_builder_defaults_are_quality_oriented() {

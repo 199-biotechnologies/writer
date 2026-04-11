@@ -86,12 +86,14 @@ impl MlxWorker {
             .spawn()
             .map_err(|e| WorkerError::Unavailable(format!("Failed to spawn mlx_worker.py: {e}")))?;
 
-        let mut stdin = child.stdin.take().ok_or_else(|| {
-            WorkerError::Unavailable("Failed to open worker stdin".to_string())
-        })?;
-        let stdout = child.stdout.take().ok_or_else(|| {
-            WorkerError::Unavailable("Failed to open worker stdout".to_string())
-        })?;
+        let mut stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| WorkerError::Unavailable("Failed to open worker stdin".to_string()))?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| WorkerError::Unavailable("Failed to open worker stdout".to_string()))?;
 
         // Drain stderr in background to prevent deadlock from MLX/model-load logs
         if let Some(stderr) = child.stderr.take() {
@@ -128,8 +130,9 @@ impl MlxWorker {
         let mut ready_line = String::new();
         reader.read_line(&mut ready_line).await?;
 
-        let ready: serde_json::Value = serde_json::from_str(ready_line.trim())
-            .map_err(|e| WorkerError::WorkerFailed(format!("Bad ready signal: {e}: {ready_line}")))?;
+        let ready: serde_json::Value = serde_json::from_str(ready_line.trim()).map_err(|e| {
+            WorkerError::WorkerFailed(format!("Bad ready signal: {e}: {ready_line}"))
+        })?;
 
         if ready.get("status").and_then(|s| s.as_str()) != Some("ready") {
             return Err(WorkerError::WorkerFailed(format!(
@@ -145,7 +148,10 @@ impl MlxWorker {
     }
 
     /// Send a generation request and wait for the response.
-    pub async fn generate(&mut self, request: &WorkerRequest) -> Result<Vec<GenerationEvent>, WorkerError> {
+    pub async fn generate(
+        &mut self,
+        request: &WorkerRequest,
+    ) -> Result<Vec<GenerationEvent>, WorkerError> {
         let req_json = serde_json::to_string(request)
             .map_err(|e| WorkerError::WorkerFailed(format!("Serialize request: {e}")))?;
 
@@ -157,13 +163,14 @@ impl MlxWorker {
         self.stdout.read_line(&mut resp_line).await?;
 
         if resp_line.trim().is_empty() {
-            return Err(WorkerError::WorkerFailed("Empty response from worker".to_string()));
+            return Err(WorkerError::WorkerFailed(
+                "Empty response from worker".to_string(),
+            ));
         }
 
-        let resp: WorkerResponse = serde_json::from_str(resp_line.trim())
-            .map_err(|e| WorkerError::WorkerFailed(format!(
-                "Parse response: {e}\nRaw: {resp_line}"
-            )))?;
+        let resp: WorkerResponse = serde_json::from_str(resp_line.trim()).map_err(|e| {
+            WorkerError::WorkerFailed(format!("Parse response: {e}\nRaw: {resp_line}"))
+        })?;
 
         if let Some(err) = resp.error {
             return Err(WorkerError::WorkerFailed(err));
@@ -206,8 +213,12 @@ fn find_worker_script() -> Result<PathBuf, WorkerError> {
 
     if let Ok(exe) = std::env::current_exe() {
         let candidates = [
-            exe.parent().unwrap_or(Path::new(".")).join("../scripts/mlx_worker.py"),
-            exe.parent().unwrap_or(Path::new(".")).join("../../scripts/mlx_worker.py"),
+            exe.parent()
+                .unwrap_or(Path::new("."))
+                .join("../scripts/mlx_worker.py"),
+            exe.parent()
+                .unwrap_or(Path::new("."))
+                .join("../../scripts/mlx_worker.py"),
         ];
         for c in &candidates {
             if let Ok(canonical) = c.canonicalize() {

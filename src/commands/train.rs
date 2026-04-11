@@ -1,8 +1,8 @@
 use serde::Serialize;
 
+use writer_cli::backends::training::TrainingBackend;
 use writer_cli::backends::training::config::LoraConfig;
 use writer_cli::backends::training::mlx_tune::{self, MlxTuneBackend};
-use writer_cli::backends::training::TrainingBackend;
 use writer_cli::backends::types::ModelId;
 
 use crate::config;
@@ -36,9 +36,13 @@ pub async fn run(ctx: Ctx, profile: Option<String>) -> Result<(), AppError> {
 
     // Prepare training data
     let train_data_dir = profile_dir.join("training_data");
-    let (n_train, n_valid) =
-        mlx_tune::prepare_training_data(&corpus_path, &train_data_dir, 0.1, cfg.training.dataset_format)
-            .map_err(|e| AppError::Transient(e.to_string()))?;
+    let (n_train, n_valid) = mlx_tune::prepare_training_data(
+        &corpus_path,
+        &train_data_dir,
+        0.1,
+        cfg.training.dataset_format,
+    )
+    .map_err(|e| AppError::Transient(e.to_string()))?;
 
     if !ctx.format.is_json() {
         use owo_colors::OwoColorize;

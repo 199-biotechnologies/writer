@@ -1,11 +1,11 @@
 use serde::Serialize;
 
-use writer_cli::backends::inference::ollama::OllamaBackend;
-use writer_cli::backends::inference::InferenceBackend;
-use writer_cli::backends::types::ModelId;
 use crate::config;
 use crate::error::AppError;
 use crate::output::{self, Ctx};
+use writer_cli::backends::inference::InferenceBackend;
+use writer_cli::backends::inference::ollama::OllamaBackend;
+use writer_cli::backends::types::ModelId;
 
 #[derive(Serialize)]
 struct ModelEntry {

@@ -13,7 +13,8 @@ impl Source for MarkdownSource {
     }
 
     fn matches(&self, path: &Path) -> bool {
-        path.extension().is_some_and(|e| e == "md" || e == "markdown")
+        path.extension()
+            .is_some_and(|e| e == "md" || e == "markdown")
     }
 
     fn parse(&self, path: &Path, context: Option<&str>) -> Result<Vec<Sample>, SourceError> {

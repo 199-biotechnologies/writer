@@ -23,9 +23,13 @@ impl PunctuationStats {
         let per_1k = |count: usize| (count as f64 / word_count) * 1000.0;
 
         Self {
-            em_dashes_per_1k: per_1k(text.matches('\u{2014}').count() + text.matches("---").count()),
-            en_dashes_per_1k: per_1k(text.matches('\u{2013}').count() + text.matches("--").count()
-                - text.matches("---").count()), // exclude triple dashes
+            em_dashes_per_1k: per_1k(
+                text.matches('\u{2014}').count() + text.matches("---").count(),
+            ),
+            en_dashes_per_1k: per_1k(
+                text.matches('\u{2013}').count() + text.matches("--").count()
+                    - text.matches("---").count(),
+            ), // exclude triple dashes
             semicolons_per_1k: per_1k(text.matches(';').count()),
             colons_per_1k: per_1k(text.matches(':').count()),
             exclamations_per_1k: per_1k(text.matches('!').count()),

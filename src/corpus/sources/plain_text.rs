@@ -78,7 +78,10 @@ fn make_sample(content: String, origin: &Path, context: Option<&str>) -> Sample 
 }
 
 fn strip_bom(content: &str) -> String {
-    content.strip_prefix('\u{FEFF}').unwrap_or(content).to_string()
+    content
+        .strip_prefix('\u{FEFF}')
+        .unwrap_or(content)
+        .to_string()
 }
 
 fn normalize_line_endings(content: &str) -> String {

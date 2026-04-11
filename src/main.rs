@@ -33,8 +33,7 @@ async fn main() {
             // Help and --version are not errors. Exit 0.
             if matches!(
                 e.kind(),
-                clap::error::ErrorKind::DisplayHelp
-                    | clap::error::ErrorKind::DisplayVersion
+                clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
             ) {
                 let format = Format::detect(json_flag);
                 match format {
@@ -57,7 +56,7 @@ async fn main() {
 
     let result = match cli.command {
         Commands::Init => commands::init::run(ctx),
-        Commands::Learn { files } => commands::learn::run(ctx, files),  // TODO: async ingest in future
+        Commands::Learn { files } => commands::learn::run(ctx, files), // TODO: async ingest in future
         Commands::Profile { action } => match action {
             ProfileAction::Show => commands::profile::show(ctx),
             ProfileAction::List => commands::profile::list(ctx),
@@ -65,21 +64,33 @@ async fn main() {
             ProfileAction::New { name } => commands::profile::new_profile(ctx, name),
         },
         Commands::Train { profile } => commands::train::run(ctx, profile).await,
-        Commands::Write { prompt, max_tokens, candidates, verbose, raw } => {
-            commands::write::run(ctx, prompt, max_tokens, candidates, verbose, raw).await
-        }
-        Commands::EvalStyle { suite, seeds, adapter, raw, output } => {
-            commands::eval_style::run(ctx, suite, seeds, adapter, raw, output).await
-        }
-        Commands::BuildLexicon { profile, min_count, max_terms } => {
-            commands::build_lexicon::run(ctx, profile, min_count, max_terms)
-        }
-        Commands::Ablation { steps, seeds, suite, output, eval_only } => {
-            commands::ablation::run(ctx, steps, seeds, suite, output, eval_only).await
-        }
-        Commands::Rewrite { file, in_place } => {
-            commands::rewrite::run(ctx, file, in_place).await
-        }
+        Commands::Write {
+            prompt,
+            max_tokens,
+            candidates,
+            verbose,
+            raw,
+        } => commands::write::run(ctx, prompt, max_tokens, candidates, verbose, raw).await,
+        Commands::EvalStyle {
+            suite,
+            seeds,
+            adapter,
+            raw,
+            output,
+        } => commands::eval_style::run(ctx, suite, seeds, adapter, raw, output).await,
+        Commands::BuildLexicon {
+            profile,
+            min_count,
+            max_terms,
+        } => commands::build_lexicon::run(ctx, profile, min_count, max_terms),
+        Commands::Ablation {
+            steps,
+            seeds,
+            suite,
+            output,
+            eval_only,
+        } => commands::ablation::run(ctx, steps, seeds, suite, output, eval_only).await,
+        Commands::Rewrite { file, in_place } => commands::rewrite::run(ctx, file, in_place).await,
         Commands::Model { action } => match action {
             ModelAction::List => commands::model::list(ctx).await,
             ModelAction::Pull { name } => commands::model::pull(ctx, name).await,
@@ -93,9 +104,7 @@ async fn main() {
             SkillAction::Status => commands::skill::status(ctx),
         },
         Commands::Config { action } => match action {
-            ConfigAction::Show => {
-                config::load().and_then(|cfg| commands::config::show(ctx, &cfg))
-            }
+            ConfigAction::Show => config::load().and_then(|cfg| commands::config::show(ctx, &cfg)),
             ConfigAction::Path => commands::config::path(ctx),
         },
         Commands::Update { check } => {

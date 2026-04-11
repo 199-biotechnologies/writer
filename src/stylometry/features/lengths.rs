@@ -18,14 +18,22 @@ pub struct LengthStats {
 /// Bin edges for sentence-length histogram.
 /// Each pair (lo, hi) is inclusive. Last bin is open-ended (50+).
 pub const HISTOGRAM_BINS: &[(u32, u32)] = &[
-    (1, 2), (3, 4), (5, 6), (7, 8), (9, 10),
-    (11, 13), (14, 17), (18, 24), (25, 34), (35, 49), (50, u32::MAX),
+    (1, 2),
+    (3, 4),
+    (5, 6),
+    (7, 8),
+    (9, 10),
+    (11, 13),
+    (14, 17),
+    (18, 24),
+    (25, 34),
+    (35, 49),
+    (50, u32::MAX),
 ];
 
 /// Bin center positions for EMD transport cost.
-pub const HISTOGRAM_BIN_CENTERS: &[f64] = &[
-    1.5, 3.5, 5.5, 7.5, 9.5, 12.0, 15.5, 21.0, 29.5, 42.0, 60.0,
-];
+pub const HISTOGRAM_BIN_CENTERS: &[f64] =
+    &[1.5, 3.5, 5.5, 7.5, 9.5, 12.0, 15.5, 21.0, 29.5, 42.0, 60.0];
 
 /// Compute sentence-length histogram as proportions over fixed bins.
 pub fn sentence_length_histogram(text: &str) -> Vec<f64> {
@@ -99,7 +107,13 @@ impl LengthStats {
         let p95_idx = ((sorted.len() as f64) * 0.95) as usize;
         let p95 = sorted[p95_idx.min(sorted.len() - 1)];
 
-        Self { mean, sd, median, p95, histogram: Vec::new() }
+        Self {
+            mean,
+            sd,
+            median,
+            p95,
+            histogram: Vec::new(),
+        }
     }
 }
 

@@ -10,9 +10,9 @@ use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use writer_cli::backends::inference::InferenceBackend;
 use writer_cli::backends::inference::mlx::MlxBackend;
 use writer_cli::backends::inference::ollama::OllamaBackend;
-use writer_cli::backends::inference::InferenceBackend;
 use writer_cli::backends::types::{AdapterRef, ModelId};
 use writer_cli::decoding;
 use writer_cli::decoding::prompts;
@@ -97,7 +97,10 @@ pub async fn run(
 ) -> Result<(), AppError> {
     // Load prompt suite
     let suite_content = std::fs::read_to_string(&suite_path).map_err(|e| {
-        AppError::InvalidInput(format!("Cannot read suite file {}: {e}", suite_path.display()))
+        AppError::InvalidInput(format!(
+            "Cannot read suite file {}: {e}",
+            suite_path.display()
+        ))
     })?;
     let suite: PromptSuite = serde_yaml::from_str(&suite_content).map_err(|e| {
         AppError::InvalidInput(format!("Invalid YAML in {}: {e}", suite_path.display()))
@@ -231,11 +234,7 @@ pub async fn run(
                 Ok(r) => (r.text, r.distance),
                 Err(e) => {
                     if !ctx.format.is_json() {
-                        eprintln!(
-                            "  warning: prompt {} seed {} failed: {e}",
-                            pi + 1,
-                            seed + 1
-                        );
+                        eprintln!("  warning: prompt {} seed {} failed: {e}", pi + 1, seed + 1);
                     }
                     continue;
                 }
@@ -302,7 +301,14 @@ pub async fn run(
     write_csv(&csv_path, &records)?;
 
     // Summary
-    let summary = compute_summary(&suite.name, &records, seeds, raw, adapter.is_some(), &model_id);
+    let summary = compute_summary(
+        &suite.name,
+        &records,
+        seeds,
+        raw,
+        adapter.is_some(),
+        &model_id,
+    );
     let summary_path = output_dir.join("eval_summary.json");
     let summary_json = serde_json::to_string_pretty(&summary)
         .map_err(|e| AppError::Transient(format!("JSON serialization: {e}")))?;
@@ -312,10 +318,7 @@ pub async fn run(
         use owo_colors::OwoColorize;
         println!("{} Evaluation complete", "+".green());
         println!("  {} generations", summary.total_generations);
-        println!(
-            "  mean style distance: {:.3}",
-            summary.mean_style_distance
-        );
+        println!("  mean style distance: {:.3}", summary.mean_style_distance);
         println!(
             "  median style distance: {:.3}",
             summary.median_style_distance
@@ -325,14 +328,8 @@ pub async fn run(
             "  mean questions/1k: {:.1}, exclamations/1k: {:.1}",
             summary.mean_questions_per_1k, summary.mean_exclamations_per_1k
         );
-        println!(
-            "  mean canon leakage: {:.3}",
-            summary.mean_canon_leakage
-        );
-        println!(
-            "\n  results: {}",
-            output_dir.display().to_string().dimmed()
-        );
+        println!("  mean canon leakage: {:.3}", summary.mean_canon_leakage);
+        println!("\n  results: {}", output_dir.display().to_string().dimmed());
     } else {
         crate::output::print_success_or(ctx, &summary, |_| {});
     }
@@ -408,9 +405,15 @@ fn contains_whole_word(needle: &str, haystack: &str) -> bool {
     for (start, _) in haystack.match_indices(needle) {
         let end = start + needle.len();
         let before_ok = start == 0
-            || !haystack[..start].chars().next_back().is_some_and(|c| c.is_alphanumeric());
+            || !haystack[..start]
+                .chars()
+                .next_back()
+                .is_some_and(|c| c.is_alphanumeric());
         let after_ok = end >= haystack.len()
-            || !haystack[end..].chars().next().is_some_and(|c| c.is_alphanumeric());
+            || !haystack[end..]
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_alphanumeric());
         if before_ok && after_ok {
             return true;
         }

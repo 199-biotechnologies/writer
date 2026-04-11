@@ -8,9 +8,9 @@ use std::path::{Path, PathBuf};
 use serde::Serialize;
 
 use writer_cli::backends::inference::mlx_worker::{MlxWorker, WorkerRequest};
+use writer_cli::backends::training::TrainingBackend;
 use writer_cli::backends::training::config::LoraConfig;
 use writer_cli::backends::training::mlx_tune::{self, MlxTuneBackend};
-use writer_cli::backends::training::TrainingBackend;
 use writer_cli::backends::types::ModelId;
 use writer_cli::config::DatasetFormat;
 use writer_cli::decoding::logit_bias;
@@ -324,11 +324,19 @@ pub async fn run(
     let bias = logit_bias::from_fingerprint(&fingerprint, &cfg.decoding);
 
     // Progress tracking
-    let total_gens = trained_adapters.len() * INFERENCE_MODES.len() * suite.prompts.len() * seeds as usize;
+    let total_gens =
+        trained_adapters.len() * INFERENCE_MODES.len() * suite.prompts.len() * seeds as usize;
     let progress_path = output_dir.join("progress.log");
     let mut completed_gens: usize = 0;
     let eval_start = std::time::Instant::now();
-    write_progress(&progress_path, 0, total_gens, 0.0, "starting evaluation", "")?;
+    write_progress(
+        &progress_path,
+        0,
+        total_gens,
+        0.0,
+        "starting evaluation",
+        "",
+    )?;
 
     // Evaluate: one persistent worker per adapter (model loaded once per adapter)
     for (ablation_cfg, adapter_path, final_loss) in &trained_adapters {
@@ -387,11 +395,27 @@ pub async fn run(
                     completed_gens += 1;
                     let gen_elapsed_ms = gen_start.elapsed().as_millis() as u64;
                     let total_elapsed = eval_start.elapsed().as_secs_f64();
-                    let avg_per_gen = if completed_gens > 0 { total_elapsed / completed_gens as f64 } else { 0.0 };
+                    let avg_per_gen = if completed_gens > 0 {
+                        total_elapsed / completed_gens as f64
+                    } else {
+                        0.0
+                    };
                     let remaining = (total_gens - completed_gens) as f64 * avg_per_gen;
 
-                    write_progress(&progress_path, completed_gens, total_gens, remaining, &combo_name,
-                        &format!("prompt {}/{} seed {}/{}", pi + 1, suite.prompts.len(), seed + 1, seeds))?;
+                    write_progress(
+                        &progress_path,
+                        completed_gens,
+                        total_gens,
+                        remaining,
+                        &combo_name,
+                        &format!(
+                            "prompt {}/{} seed {}/{}",
+                            pi + 1,
+                            suite.prompts.len(),
+                            seed + 1,
+                            seeds
+                        ),
+                    )?;
 
                     let record = match result {
                         Ok(events) => {
@@ -410,31 +434,53 @@ pub async fn run(
                                     inference_mode: inf_mode.name.to_string(),
                                     prompt: prompt_entry.text.clone(),
                                     category: bucket.clone(),
-                                    seed, rng_seed,
+                                    seed,
+                                    rng_seed,
                                     status: "failed".to_string(),
                                     error: Some("Empty generation".to_string()),
-                                    text: None, style_distance: None, base_voice_distance: None,
-                                    fk_grade: None, questions_per_1k: None, exclamations_per_1k: None,
-                                    terminal_punct_dist: None, structural_punct_dist: None,
-                                    sentence_length_dist: None, function_word_cos: None,
-                                    ngram_cos: None, readability_diff: None, richness_diff: None,
-                                    slop_score: None, slop_multiplier: None,
-                                    canon_leakage_score: None, leaked_terms: None,
-                                    word_count: None, sentence_count: None,
+                                    text: None,
+                                    style_distance: None,
+                                    base_voice_distance: None,
+                                    fk_grade: None,
+                                    questions_per_1k: None,
+                                    exclamations_per_1k: None,
+                                    terminal_punct_dist: None,
+                                    structural_punct_dist: None,
+                                    sentence_length_dist: None,
+                                    function_word_cos: None,
+                                    ngram_cos: None,
+                                    readability_diff: None,
+                                    richness_diff: None,
+                                    slop_score: None,
+                                    slop_multiplier: None,
+                                    canon_leakage_score: None,
+                                    leaked_terms: None,
+                                    word_count: None,
+                                    sentence_count: None,
                                     elapsed_ms: Some(gen_elapsed_ms),
                                 }
                             } else {
                                 let punct = PunctuationStats::compute(&text);
                                 let read = ReadabilityStats::compute(&text);
                                 let dist_report = scoring::distance(&text, &fingerprint);
-                                let leakage = compute_canon_leakage(&text, &prompt_entry.text, &leakage_lexicon);
+                                let leakage = compute_canon_leakage(
+                                    &text,
+                                    &prompt_entry.text,
+                                    &leakage_lexicon,
+                                );
                                 let wc = text.split_whitespace().count();
                                 let sc = text.split_terminator(['.', '!', '?']).count();
 
                                 if !ctx.format.is_json() {
-                                    eprintln!("    [{}/{}] {:.0}s dist={:.3} leak={:.3} | ETA {:.0}m",
-                                        completed_gens, total_gens, gen_elapsed_ms as f64 / 1000.0,
-                                        dist_report.overall, leakage.score, remaining / 60.0);
+                                    eprintln!(
+                                        "    [{}/{}] {:.0}s dist={:.3} leak={:.3} | ETA {:.0}m",
+                                        completed_gens,
+                                        total_gens,
+                                        gen_elapsed_ms as f64 / 1000.0,
+                                        dist_report.overall,
+                                        leakage.score,
+                                        remaining / 60.0
+                                    );
                                 }
 
                                 GenerationRecord {
@@ -442,7 +488,8 @@ pub async fn run(
                                     inference_mode: inf_mode.name.to_string(),
                                     prompt: prompt_entry.text.clone(),
                                     category: bucket.clone(),
-                                    seed, rng_seed,
+                                    seed,
+                                    rng_seed,
                                     status: "ok".to_string(),
                                     error: None,
                                     text: Some(text),
@@ -470,25 +517,42 @@ pub async fn run(
                         }
                         Err(e) => {
                             if !ctx.format.is_json() {
-                                eprintln!("    [{}/{}] FAILED: {} | ETA {:.0}m",
-                                    completed_gens, total_gens, e, remaining / 60.0);
+                                eprintln!(
+                                    "    [{}/{}] FAILED: {} | ETA {:.0}m",
+                                    completed_gens,
+                                    total_gens,
+                                    e,
+                                    remaining / 60.0
+                                );
                             }
                             GenerationRecord {
                                 training_format: ablation_cfg.name.to_string(),
                                 inference_mode: inf_mode.name.to_string(),
                                 prompt: prompt_entry.text.clone(),
                                 category: bucket.clone(),
-                                seed, rng_seed,
+                                seed,
+                                rng_seed,
                                 status: "failed".to_string(),
                                 error: Some(e.to_string()),
-                                text: None, style_distance: None, base_voice_distance: None,
-                                fk_grade: None, questions_per_1k: None, exclamations_per_1k: None,
-                                terminal_punct_dist: None, structural_punct_dist: None,
-                                sentence_length_dist: None, function_word_cos: None,
-                                ngram_cos: None, readability_diff: None, richness_diff: None,
-                                slop_score: None, slop_multiplier: None,
-                                canon_leakage_score: None, leaked_terms: None,
-                                word_count: None, sentence_count: None,
+                                text: None,
+                                style_distance: None,
+                                base_voice_distance: None,
+                                fk_grade: None,
+                                questions_per_1k: None,
+                                exclamations_per_1k: None,
+                                terminal_punct_dist: None,
+                                structural_punct_dist: None,
+                                sentence_length_dist: None,
+                                function_word_cos: None,
+                                ngram_cos: None,
+                                readability_diff: None,
+                                richness_diff: None,
+                                slop_score: None,
+                                slop_multiplier: None,
+                                canon_leakage_score: None,
+                                leaked_terms: None,
+                                word_count: None,
+                                sentence_count: None,
                                 elapsed_ms: Some(gen_elapsed_ms),
                             }
                         }
@@ -499,17 +563,19 @@ pub async fn run(
                 }
             }
 
-            let combo_result = compute_combo_result(
-                ablation_cfg.name, inf_mode.name, *final_loss, &gen_records,
-            );
+            let combo_result =
+                compute_combo_result(ablation_cfg.name, inf_mode.name, *final_loss, &gen_records);
 
             if !ctx.format.is_json() {
                 let o = &combo_result.overall;
                 println!(
                     "  {} + {} → dist={:.3} leak={:.3} ({}/{} ok)",
-                    ablation_cfg.name, inf_mode.name,
-                    o.mean_style_distance, o.mean_canon_leakage,
-                    combo_result.succeeded, combo_result.total,
+                    ablation_cfg.name,
+                    inf_mode.name,
+                    o.mean_style_distance,
+                    o.mean_canon_leakage,
+                    combo_result.succeeded,
+                    combo_result.total,
                 );
             }
 
@@ -604,7 +670,10 @@ fn load_canon_lexicon(profile_dir: &Path) -> Vec<String> {
 
 fn compute_canon_leakage(output: &str, prompt: &str, lexicon: &[String]) -> LeakageResult {
     if lexicon.is_empty() {
-        return LeakageResult { score: 0.0, leaked_terms: Vec::new() };
+        return LeakageResult {
+            score: 0.0,
+            leaked_terms: Vec::new(),
+        };
     }
 
     let output_lower = output.to_lowercase();
@@ -630,7 +699,10 @@ fn compute_canon_leakage(output: &str, prompt: &str, lexicon: &[String]) -> Leak
         leaked_terms.len() as f64 / checkable as f64
     };
 
-    LeakageResult { score, leaked_terms }
+    LeakageResult {
+        score,
+        leaked_terms,
+    }
 }
 
 /// Check if `needle` appears in `haystack` at a Unicode word boundary.
@@ -639,9 +711,15 @@ fn contains_whole(needle: &str, haystack: &str) -> bool {
     for (start, _) in haystack.match_indices(needle) {
         let end = start + needle.len();
         let before_ok = start == 0
-            || !haystack[..start].chars().next_back().is_some_and(|c| c.is_alphanumeric());
+            || !haystack[..start]
+                .chars()
+                .next_back()
+                .is_some_and(|c| c.is_alphanumeric());
         let after_ok = end >= haystack.len()
-            || !haystack[end..].chars().next().is_some_and(|c| c.is_alphanumeric());
+            || !haystack[end..]
+                .chars()
+                .next()
+                .is_some_and(|c| c.is_alphanumeric());
         if before_ok && after_ok {
             return true;
         }
@@ -710,20 +788,26 @@ fn compute_combo_result(
     // Per-bucket stats — always include all standard buckets
     let mut buckets = std::collections::BTreeMap::new();
     let standard_buckets = ["off-domain", "canon-adjacent", "longform", "shortform"];
-    let mut bucket_names: std::collections::BTreeSet<String> = records.iter().map(|r| r.category.clone()).collect();
+    let mut bucket_names: std::collections::BTreeSet<String> =
+        records.iter().map(|r| r.category.clone()).collect();
     for b in &standard_buckets {
         bucket_names.insert(b.to_string());
     }
 
     for bucket_name in &bucket_names {
-        let bucket_ok: Vec<&GenerationRecord> = ok_records.iter()
+        let bucket_ok: Vec<&GenerationRecord> = ok_records
+            .iter()
             .filter(|r| r.category == *bucket_name)
             .copied()
             .collect();
-        let bucket_failed = records.iter()
+        let bucket_failed = records
+            .iter()
             .filter(|r| r.category == *bucket_name && r.status == "failed")
             .count();
-        buckets.insert(bucket_name.clone(), compute_bucket_stats(bucket_name, &bucket_ok, bucket_failed));
+        buckets.insert(
+            bucket_name.clone(),
+            compute_bucket_stats(bucket_name, &bucket_ok, bucket_failed),
+        );
     }
 
     ComboResult {
@@ -774,7 +858,10 @@ fn compute_bucket_stats(name: &str, records: &[&GenerationRecord], failed: usize
 
     let variance_dist = dists.iter().map(|d| (d - mean_dist).powi(2)).sum::<f64>() / n;
 
-    let leakages: Vec<f64> = records.iter().filter_map(|r| r.canon_leakage_score).collect();
+    let leakages: Vec<f64> = records
+        .iter()
+        .filter_map(|r| r.canon_leakage_score)
+        .collect();
     let mean_leak = leakages.iter().sum::<f64>() / n;
     let worst_leak = leakages.iter().copied().fold(0.0f64, f64::max);
 
@@ -787,10 +874,26 @@ fn compute_bucket_stats(name: &str, records: &[&GenerationRecord], failed: usize
         variance_style_distance: variance_dist,
         mean_canon_leakage: mean_leak,
         worst_canon_leakage: worst_leak,
-        mean_questions_per_1k: records.iter().filter_map(|r| r.questions_per_1k).sum::<f64>() / n,
-        mean_exclamations_per_1k: records.iter().filter_map(|r| r.exclamations_per_1k).sum::<f64>() / n,
-        mean_terminal_punct_dist: records.iter().filter_map(|r| r.terminal_punct_dist).sum::<f64>() / n,
-        mean_structural_punct_dist: records.iter().filter_map(|r| r.structural_punct_dist).sum::<f64>() / n,
+        mean_questions_per_1k: records
+            .iter()
+            .filter_map(|r| r.questions_per_1k)
+            .sum::<f64>()
+            / n,
+        mean_exclamations_per_1k: records
+            .iter()
+            .filter_map(|r| r.exclamations_per_1k)
+            .sum::<f64>()
+            / n,
+        mean_terminal_punct_dist: records
+            .iter()
+            .filter_map(|r| r.terminal_punct_dist)
+            .sum::<f64>()
+            / n,
+        mean_structural_punct_dist: records
+            .iter()
+            .filter_map(|r| r.structural_punct_dist)
+            .sum::<f64>()
+            / n,
         mean_fk_grade: records.iter().filter_map(|r| r.fk_grade).sum::<f64>() / n,
     }
 }
@@ -813,7 +916,9 @@ fn select_winner(results: &[ComboResult]) -> WinnerReport {
     let mut reasoning = Vec::new();
 
     // Exclude combos with 0 successful generations
-    let viable: Vec<usize> = results.iter().enumerate()
+    let viable: Vec<usize> = results
+        .iter()
+        .enumerate()
         .filter(|(_, r)| r.succeeded > 0)
         .map(|(i, _)| i)
         .collect();
@@ -828,12 +933,19 @@ fn select_winner(results: &[ComboResult]) -> WinnerReport {
         };
     }
 
-    reasoning.push(format!("{} of {} combos have successful generations", viable.len(), results.len()));
+    reasoning.push(format!(
+        "{} of {} combos have successful generations",
+        viable.len(),
+        results.len()
+    ));
 
     // Gate 1: Sort by off-domain leakage, keep top half (strict lexicographic)
-    let mut gate1_scored: Vec<(usize, f64)> = viable.iter()
+    let mut gate1_scored: Vec<(usize, f64)> = viable
+        .iter()
         .map(|&i| {
-            let leak = results[i].buckets.get("off-domain")
+            let leak = results[i]
+                .buckets
+                .get("off-domain")
                 .filter(|b| b.count > 0)
                 .map(|b| b.mean_canon_leakage)
                 .unwrap_or(results[i].overall.mean_canon_leakage);
@@ -843,52 +955,79 @@ fn select_winner(results: &[ComboResult]) -> WinnerReport {
     gate1_scored.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
     // Keep at most half, but at least 2 (or all if ≤ 2)
-    let gate1_keep = gate1_scored.len().min(gate1_scored.len() / 2 + 1).max(2).min(gate1_scored.len());
-    let gate1_survivors: Vec<usize> = gate1_scored.iter().take(gate1_keep).map(|(i, _)| *i).collect();
+    let gate1_keep = gate1_scored
+        .len()
+        .min(gate1_scored.len() / 2 + 1)
+        .max(2)
+        .min(gate1_scored.len());
+    let gate1_survivors: Vec<usize> = gate1_scored
+        .iter()
+        .take(gate1_keep)
+        .map(|(i, _)| *i)
+        .collect();
 
     for (i, leak) in &gate1_scored {
         let r = &results[*i];
         let survived = gate1_survivors.contains(i);
         reasoning.push(format!(
             "  G1: {} + {} leak={:.4} {}",
-            r.training_format, r.inference_mode, leak,
+            r.training_format,
+            r.inference_mode,
+            leak,
             if survived { "PASS" } else { "ELIMINATED" }
         ));
     }
 
     // Gate 2: Sort by structural voice distance (terminal + structural punct dist, lower = better)
-    let mut gate2_scored: Vec<(usize, f64)> = gate1_survivors.iter()
+    let mut gate2_scored: Vec<(usize, f64)> = gate1_survivors
+        .iter()
         .map(|&i| {
             let r = &results[i];
-            let voice_dist = r.overall.mean_terminal_punct_dist + r.overall.mean_structural_punct_dist;
+            let voice_dist =
+                r.overall.mean_terminal_punct_dist + r.overall.mean_structural_punct_dist;
             (i, voice_dist)
         })
         .collect();
     gate2_scored.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
     // Keep at most half+1 or all if ≤ 2
-    let gate2_keep = gate2_scored.len().min(gate2_scored.len() / 2 + 1).max(2).min(gate2_scored.len());
-    let gate2_survivors: Vec<usize> = gate2_scored.iter().take(gate2_keep).map(|(i, _)| *i).collect();
+    let gate2_keep = gate2_scored
+        .len()
+        .min(gate2_scored.len() / 2 + 1)
+        .max(2)
+        .min(gate2_scored.len());
+    let gate2_survivors: Vec<usize> = gate2_scored
+        .iter()
+        .take(gate2_keep)
+        .map(|(i, _)| *i)
+        .collect();
 
     for (i, dist) in &gate2_scored {
         let r = &results[*i];
         let survived = gate2_survivors.contains(i);
         reasoning.push(format!(
             "  G2: {} + {} voice_dist={:.4} {}",
-            r.training_format, r.inference_mode, dist,
+            r.training_format,
+            r.inference_mode,
+            dist,
             if survived { "PASS" } else { "ELIMINATED" }
         ));
     }
 
     // Gate 3: Lowest style distance as tiebreaker
-    let mut gate3_scored: Vec<(usize, f64)> = gate2_survivors.iter()
+    let mut gate3_scored: Vec<(usize, f64)> = gate2_survivors
+        .iter()
         .map(|&i| (i, results[i].overall.mean_style_distance))
         .collect();
     gate3_scored.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
     let winner_idx = gate3_scored[0].0;
     let r = &results[winner_idx];
-    let winner_leak = gate1_scored.iter().find(|(i, _)| *i == winner_idx).map(|(_, l)| *l).unwrap_or(0.0);
+    let winner_leak = gate1_scored
+        .iter()
+        .find(|(i, _)| *i == winner_idx)
+        .map(|(_, l)| *l)
+        .unwrap_or(0.0);
 
     reasoning.push(format!(
         "  WINNER: {} + {} dist={:.3} leak={:.4}",

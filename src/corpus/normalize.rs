@@ -78,7 +78,12 @@ fn strip_link_anchors(content: String) -> String {
     let chars: Vec<char> = content.chars().collect();
     while i < chars.len() {
         // Match []{#...}
-        if i + 3 < chars.len() && chars[i] == '[' && chars[i + 1] == ']' && chars[i + 2] == '{' && chars[i + 3] == '#' {
+        if i + 3 < chars.len()
+            && chars[i] == '['
+            && chars[i + 1] == ']'
+            && chars[i + 2] == '{'
+            && chars[i + 3] == '#'
+        {
             // Skip until closing }
             while i < chars.len() && chars[i] != '}' {
                 i += 1;
@@ -164,8 +169,12 @@ fn strip_signatures(content: String) -> String {
 
 /// Remove zero-width characters that pollute text
 fn strip_zero_width(content: String) -> String {
-    content
-        .replace(['\u{200B}', '\u{200C}', '\u{200D}', '\u{FEFF}', '\u{200E}', '\u{200F}'], "") // right-to-left mark
+    content.replace(
+        [
+            '\u{200B}', '\u{200C}', '\u{200D}', '\u{FEFF}', '\u{200E}', '\u{200F}',
+        ],
+        "",
+    ) // right-to-left mark
 }
 
 /// Collapse multiple spaces/blank lines
@@ -245,10 +254,7 @@ fn strip_tracking_params(content: String) -> String {
     for param in &tracking_params {
         // Simple regex-free approach: find ?param= or &param= and strip to next & or whitespace
         loop {
-            let patterns = [
-                format!("?{param}="),
-                format!("&{param}="),
-            ];
+            let patterns = [format!("?{param}="), format!("&{param}=")];
             let mut found = false;
             for pattern in &patterns {
                 if let Some(start) = result.find(pattern.as_str()) {
@@ -261,11 +267,7 @@ fn strip_tracking_params(content: String) -> String {
                     if pattern.starts_with('?') {
                         // If there's a & after, replace ? with remaining
                         if end < result.len() && result.as_bytes().get(end) == Some(&b'&') {
-                            result = format!(
-                                "{}?{}",
-                                &result[..start],
-                                &result[end + 1..]
-                            );
+                            result = format!("{}?{}", &result[..start], &result[end + 1..]);
                         } else {
                             result = format!("{}{}", &result[..start], &result[end..]);
                         }

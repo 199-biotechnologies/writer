@@ -59,9 +59,10 @@ impl OllamaBackend {
                 ))
             })?;
 
-        let ver: OllamaVersion = resp.json().await.map_err(|e| {
-            BackendError::Backend(format!("Failed to parse Ollama version: {e}"))
-        })?;
+        let ver: OllamaVersion = resp
+            .json()
+            .await
+            .map_err(|e| BackendError::Backend(format!("Failed to parse Ollama version: {e}")))?;
 
         Ok(ver.version)
     }
@@ -96,7 +97,7 @@ impl OllamaBackend {
 
         // Find the index of the first part that looks like a size (e.g. "26b", "4b", "9b")
         let size_idx = parts.iter().position(|p| {
-            p.len() >= 2 && p.ends_with('b') && p[..p.len()-1].chars().all(|c| c.is_ascii_digit())
+            p.len() >= 2 && p.ends_with('b') && p[..p.len() - 1].chars().all(|c| c.is_ascii_digit())
         });
 
         if let Some(idx) = size_idx {
@@ -334,9 +335,7 @@ impl InferenceBackend for OllamaBackend {
             let backend = OllamaBackend::new(&self.base_url);
             let tag = model_tag.clone();
             let req = request.clone();
-            tasks.spawn(async move {
-                backend.generate_single(&tag, &req, i as u16).await
-            });
+            tasks.spawn(async move { backend.generate_single(&tag, &req, i as u16).await });
         }
 
         let mut all_events = Vec::new();

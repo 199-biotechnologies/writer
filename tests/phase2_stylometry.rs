@@ -22,7 +22,11 @@ operations and catalyze unprecedented growth.";
 #[test]
 fn length_stats_produce_reasonable_values() {
     let stats = lengths::word_lengths(HUMAN_TEXT);
-    assert!(stats.mean > 2.0 && stats.mean < 8.0, "mean word length: {}", stats.mean);
+    assert!(
+        stats.mean > 2.0 && stats.mean < 8.0,
+        "mean word length: {}",
+        stats.mean
+    );
     assert!(stats.sd > 0.0);
 }
 
@@ -31,7 +35,12 @@ fn sentence_lengths_differ_between_styles() {
     let human = lengths::sentence_lengths(HUMAN_TEXT);
     let ai = lengths::sentence_lengths(AI_TEXT);
     // AI text typically has longer sentences
-    assert!(ai.mean > human.mean * 0.5, "AI mean {} vs human mean {}", ai.mean, human.mean);
+    assert!(
+        ai.mean > human.mean * 0.5,
+        "AI mean {} vs human mean {}",
+        ai.mean,
+        human.mean
+    );
 }
 
 #[test]
@@ -47,7 +56,10 @@ fn trigrams_produce_results() {
     let tris = ngrams::trigrams(HUMAN_TEXT);
     assert!(!tris.is_empty());
     // "the" should be a common trigram
-    assert!(tris.iter().any(|(g, _)| g == "the"), "expected 'the' trigram");
+    assert!(
+        tris.iter().any(|(g, _)| g == "the"),
+        "expected 'the' trigram"
+    );
 }
 
 #[test]
@@ -56,7 +68,10 @@ fn punctuation_detects_em_dashes() {
     let stats = PunctuationStats::compute(text_with_dashes);
     assert!(stats.em_dashes_per_1k > 0.0, "should detect em dashes");
     assert!(stats.semicolons_per_1k > 0.0, "should detect semicolons");
-    assert!(stats.exclamations_per_1k > 0.0, "should detect exclamations");
+    assert!(
+        stats.exclamations_per_1k > 0.0,
+        "should detect exclamations"
+    );
 }
 
 #[test]
@@ -65,14 +80,16 @@ fn ai_slop_lists_are_populated() {
     assert!(ai_slop::BANNED_PHRASES.len() >= 10);
     // No duplicates
     let word_set: std::collections::HashSet<_> = ai_slop::BANNED_WORDS.iter().collect();
-    assert_eq!(word_set.len(), ai_slop::BANNED_WORDS.len(), "no duplicate banned words");
+    assert_eq!(
+        word_set.len(),
+        ai_slop::BANNED_WORDS.len(),
+        "no duplicate banned words"
+    );
 }
 
 #[test]
 fn fingerprint_computes_from_samples() {
-    let samples: Vec<Sample> = vec![
-        Sample::new(HUMAN_TEXT.into(), SampleMetadata::default()),
-    ];
+    let samples: Vec<Sample> = vec![Sample::new(HUMAN_TEXT.into(), SampleMetadata::default())];
     let fp = StylometricFingerprint::compute(&samples);
     assert!(fp.word_count > 0);
     assert!(fp.sentence_length.mean > 0.0);
@@ -127,7 +144,10 @@ fn sentence_segmentation_audit() {
     // Test with abbreviations that should NOT split
     let text_with_abbrevs = "Mr. Ford Prefect arrived at 3 p.m. on Tuesday. He was quite annoyed.";
     let stats = lengths::sentence_lengths(text_with_abbrevs);
-    println!("Abbrev text: mean={:.1} sd={:.1} sentences detected", stats.mean, stats.sd);
+    println!(
+        "Abbrev text: mean={:.1} sd={:.1} sentences detected",
+        stats.mean, stats.sd
+    );
 
     // Test with Adams-like short fragments
     let adams_like = "Don't panic. Mostly harmless. So long, and thanks for all the fish! The ships hung in the sky in much the same way that bricks don't.";

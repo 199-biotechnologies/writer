@@ -39,6 +39,9 @@ impl SourceRegistry {
     }
 
     pub fn detect(&self, path: &Path) -> Option<&dyn Source> {
-        self.sources.iter().find(|s| s.matches(path)).map(|s| s.as_ref())
+        self.sources
+            .iter()
+            .find(|s| s.matches(path))
+            .map(|s| s.as_ref())
     }
 }

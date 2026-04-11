@@ -52,9 +52,7 @@ impl AppError {
             Self::Config(_) => "Check config with: writer config path",
             Self::Transient(_) | Self::Io(_) => "Retry the command",
             Self::RateLimited(_) => "Wait a moment and retry",
-            Self::Update(_) => {
-                "Retry later, or install manually via cargo install writer-cli"
-            }
+            Self::Update(_) => "Retry later, or install manually via cargo install writer-cli",
         }
     }
 }

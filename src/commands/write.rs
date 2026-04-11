@@ -1,8 +1,8 @@
 use serde::Serialize;
 
+use writer_cli::backends::inference::InferenceBackend;
 use writer_cli::backends::inference::mlx::MlxBackend;
 use writer_cli::backends::inference::ollama::OllamaBackend;
-use writer_cli::backends::inference::InferenceBackend;
 use writer_cli::backends::types::{AdapterRef, ModelId};
 use writer_cli::decoding;
 use writer_cli::decoding::prompts;
@@ -170,9 +170,7 @@ pub async fn run(
         };
         output::print_success_or(ctx, &output, |_| {});
     } else {
-        let output = WriteResult {
-            text: result.text,
-        };
+        let output = WriteResult { text: result.text };
         output::print_success_or(ctx, &output, |_| {});
     }
 

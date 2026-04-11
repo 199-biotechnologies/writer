@@ -1,9 +1,9 @@
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
+use writer_cli::backends::inference::InferenceBackend;
 use writer_cli::backends::inference::ollama::OllamaBackend;
 use writer_cli::backends::inference::request::GenerationRequest;
 use writer_cli::backends::inference::response::GenerationEvent;
-use writer_cli::backends::inference::InferenceBackend;
 use writer_cli::backends::types::ModelId;
 
 #[tokio::test]
@@ -72,8 +72,7 @@ async fn generate_produces_events() {
     let model: ModelId = "google/gemma-4-26b-a4b".parse().unwrap();
     let handle = backend.load_model(&model).await.unwrap();
 
-    let req = GenerationRequest::new(model, "Write about birds".into())
-        .with_n_candidates(1);
+    let req = GenerationRequest::new(model, "Write about birds".into()).with_n_candidates(1);
 
     use tokio_stream::StreamExt;
     let mut stream = backend.generate(&handle, req).await.unwrap();
@@ -89,7 +88,10 @@ async fn generate_produces_events() {
     }
 
     assert!(got_done, "should get Done event");
-    assert!(full_text.contains("voice"), "should contain generated text: {full_text}");
+    assert!(
+        full_text.contains("voice"),
+        "should contain generated text: {full_text}"
+    );
 }
 
 #[tokio::test]
@@ -98,6 +100,8 @@ async fn ping_fails_with_actionable_error() {
     let result = backend.ping().await;
     assert!(result.is_err());
     let err = result.unwrap_err().to_string();
-    assert!(err.contains("brew services start ollama") || err.contains("Cannot reach"),
-        "error should be actionable: {err}");
+    assert!(
+        err.contains("brew services start ollama") || err.contains("Cannot reach"),
+        "error should be actionable: {err}"
+    );
 }

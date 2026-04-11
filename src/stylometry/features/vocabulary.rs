@@ -7,10 +7,7 @@ use crate::stylometry::ai_slop;
 
 /// Compute the user's vocabulary set and derive banned/preferred lists.
 pub fn analyze(text: &str) -> VocabularyAnalysis {
-    let words: Vec<String> = text
-        .unicode_words()
-        .map(|w| w.to_lowercase())
-        .collect();
+    let words: Vec<String> = text.unicode_words().map(|w| w.to_lowercase()).collect();
 
     let total = words.len();
     let user_vocab: HashSet<String> = words.iter().cloned().collect();

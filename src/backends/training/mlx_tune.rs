@@ -90,14 +90,17 @@ impl TrainingBackend for MlxTuneBackend {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .map_err(|e| TrainingError::TrainingFailed(format!("Failed to spawn mlx_lm.lora: {e}")))?;
+            .map_err(|e| {
+                TrainingError::TrainingFailed(format!("Failed to spawn mlx_lm.lora: {e}"))
+            })?;
 
         // Parse progress from stdout
         let stdout = child.stdout.take();
         let stderr = child.stderr.take();
 
         // Read stderr in background for error capture
-        let stderr_handle = stderr.map(|stderr| tokio::spawn(async move {
+        let stderr_handle = stderr.map(|stderr| {
+            tokio::spawn(async move {
                 let reader = tokio::io::BufReader::new(stderr);
                 let mut lines = Vec::new();
                 use tokio::io::AsyncBufReadExt;
@@ -106,7 +109,8 @@ impl TrainingBackend for MlxTuneBackend {
                     lines.push(line);
                 }
                 lines
-            }));
+            })
+        });
 
         // Parse stdout progress lines
         let mut last_loss = 0.0f32;
@@ -241,7 +245,9 @@ pub fn prepare_training_data(
         .collect();
 
     if samples.is_empty() {
-        return Err(TrainingError::Dataset("No samples found in corpus".to_string()));
+        return Err(TrainingError::Dataset(
+            "No samples found in corpus".to_string(),
+        ));
     }
 
     let n_holdout = (samples.len() as f64 * holdout_ratio).ceil() as usize;
@@ -298,14 +304,13 @@ fn resolve_mlx_model(model_id: &crate::backends::types::ModelId) -> String {
     format!("mlx-community/{name}-4bit")
 }
 
-fn write_chat_jsonl(path: &Path, samples: &[crate::corpus::sample::Sample]) -> Result<(), TrainingError> {
+fn write_chat_jsonl(
+    path: &Path,
+    samples: &[crate::corpus::sample::Sample],
+) -> Result<(), TrainingError> {
     let mut output = String::new();
     for sample in samples {
-        let context = sample
-            .metadata
-            .context_tag
-            .as_deref()
-            .unwrap_or("longform");
+        let context = sample.metadata.context_tag.as_deref().unwrap_or("longform");
 
         let example = ChatExample {
             messages: vec![
@@ -330,14 +335,13 @@ fn write_chat_jsonl(path: &Path, samples: &[crate::corpus::sample::Sample]) -> R
 
 /// Completions format: {"prompt": "...", "completion": "..."}
 /// Supports mask_prompt in mlx-lm to train only on the completion portion.
-fn write_completion_jsonl(path: &Path, samples: &[crate::corpus::sample::Sample]) -> Result<(), TrainingError> {
+fn write_completion_jsonl(
+    path: &Path,
+    samples: &[crate::corpus::sample::Sample],
+) -> Result<(), TrainingError> {
     let mut output = String::new();
     for sample in samples {
-        let context = sample
-            .metadata
-            .context_tag
-            .as_deref()
-            .unwrap_or("longform");
+        let context = sample.metadata.context_tag.as_deref().unwrap_or("longform");
 
         let example = CompletionExample {
             prompt: format!("Write a {context} passage in your natural voice.\n\n"),
@@ -354,7 +358,10 @@ fn write_completion_jsonl(path: &Path, samples: &[crate::corpus::sample::Sample]
 
 /// Text format: {"text": "..."} — raw continuation, no chat wrapping.
 /// mlx-lm treats this as pure language modeling with no template applied.
-fn write_text_jsonl(path: &Path, samples: &[crate::corpus::sample::Sample]) -> Result<(), TrainingError> {
+fn write_text_jsonl(
+    path: &Path,
+    samples: &[crate::corpus::sample::Sample],
+) -> Result<(), TrainingError> {
     let mut output = String::new();
     for sample in samples {
         let example = TextExample {

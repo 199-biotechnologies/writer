@@ -22,9 +22,9 @@ pub mod ranker;
 use serde::Serialize;
 use tokio_stream::StreamExt;
 
+use crate::backends::inference::InferenceBackend;
 use crate::backends::inference::request::GenerationRequest;
 use crate::backends::inference::response::GenerationEvent;
-use crate::backends::inference::InferenceBackend;
 use crate::backends::types::{AdapterRef, ModelHandle, ModelId};
 use crate::config::DecodingConfig;
 use crate::stylometry::fingerprint::StylometricFingerprint;
@@ -120,9 +120,7 @@ pub async fn run(
                     ..
                 } => {
                     let text = if full_text.is_empty() {
-                        current_texts
-                            .remove(&candidate_index)
-                            .unwrap_or_default()
+                        current_texts.remove(&candidate_index).unwrap_or_default()
                     } else {
                         full_text
                     };
@@ -144,8 +142,7 @@ pub async fn run(
 
         // Convert to ordered vec — keys are the real backend indices
         let backend_indices: Vec<u16> = candidate_map.keys().copied().collect();
-        let candidates: Vec<(String, u32, u64)> =
-            candidate_map.into_values().collect();
+        let candidates: Vec<(String, u32, u64)> = candidate_map.into_values().collect();
 
         if candidates.is_empty() {
             let err_detail = if errors.is_empty() {

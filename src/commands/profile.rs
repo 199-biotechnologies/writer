@@ -29,9 +29,16 @@ pub fn show(ctx: Ctx) -> Result<(), AppError> {
         println!("Profile: {}", p.name.bold());
         println!(
             "  active:            {}",
-            if p.active { "yes".green().to_string() } else { "no".dimmed().to_string() }
+            if p.active {
+                "yes".green().to_string()
+            } else {
+                "no".dimmed().to_string()
+            }
         );
-        println!("  samples:           {}", p.samples_count.to_string().bold());
+        println!(
+            "  samples:           {}",
+            p.samples_count.to_string().bold()
+        );
         println!("  total words:       {}", p.total_words.to_string().bold());
         println!("  total chars:       {}", p.total_chars.to_string().bold());
         println!("  avg sentence len:  {:.1}", p.avg_sentence_length);
@@ -39,7 +46,11 @@ pub fn show(ctx: Ctx) -> Result<(), AppError> {
         println!("  vocabulary size:   {}", p.vocab_size.to_string().bold());
         println!(
             "  trained:           {}",
-            if p.trained { "yes".green().to_string() } else { "no".dimmed().to_string() }
+            if p.trained {
+                "yes".green().to_string()
+            } else {
+                "no".dimmed().to_string()
+            }
         );
         println!("  samples dir:       {}", p.samples_dir.dimmed());
     });
@@ -215,8 +226,8 @@ fn compute_profile_info(name: &str, active: bool) -> Result<ProfileInfo, AppErro
 
     let (avg_sentence_length, sentence_length_sd) = stats(&sentence_lengths);
 
-    let trained = profile_dir.join("adapter.safetensors").exists()
-        || profile_dir.join("adapter").exists();
+    let trained =
+        profile_dir.join("adapter.safetensors").exists() || profile_dir.join("adapter").exists();
 
     Ok(ProfileInfo {
         name: name.to_string(),

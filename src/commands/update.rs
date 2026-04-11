@@ -81,10 +81,7 @@ pub fn run(ctx: Ctx, check: bool, config: &AppConfig) -> Result<(), AppError> {
             if up_to_date {
                 println!("Already up to date (v{})", r.current_version);
             } else {
-                println!(
-                    "Updated: v{} -> v{}",
-                    r.current_version, r.latest_version
-                );
+                println!("Updated: v{} -> v{}", r.current_version, r.latest_version);
                 println!("Run `writer skill install` to update agent skills");
             }
         });
