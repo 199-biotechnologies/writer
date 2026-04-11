@@ -89,6 +89,11 @@ struct GenerationRecord {
     exclamations_per_1k: Option<f64>,
     terminal_punct_dist: Option<f64>,
     structural_punct_dist: Option<f64>,
+    sentence_length_dist: Option<f64>,
+    function_word_cos: Option<f64>,
+    ngram_cos: Option<f64>,
+    readability_diff: Option<f64>,
+    richness_diff: Option<f64>,
     slop_score: Option<f64>,
     slop_multiplier: Option<f64>,
     canon_leakage_score: Option<f64>,
@@ -111,6 +116,8 @@ struct BucketStats {
     worst_canon_leakage: f64,
     mean_questions_per_1k: f64,
     mean_exclamations_per_1k: f64,
+    mean_terminal_punct_dist: f64,
+    mean_structural_punct_dist: f64,
     mean_fk_grade: f64,
 }
 
@@ -436,6 +443,11 @@ pub async fn run(
                                 exclamations_per_1k: Some(punct.exclamations_per_1k),
                                 terminal_punct_dist: Some(dist_report.terminal_punct_dist),
                                 structural_punct_dist: Some(dist_report.structural_punct_dist),
+                                sentence_length_dist: Some(dist_report.sentence_length_dist),
+                                function_word_cos: Some(dist_report.function_word_cos),
+                                ngram_cos: Some(dist_report.ngram_cos),
+                                readability_diff: Some(dist_report.readability_diff),
+                                richness_diff: Some(dist_report.richness_diff),
                                 slop_score: Some(dist_report.slop_score),
                                 slop_multiplier: Some(dist_report.slop_multiplier),
                                 canon_leakage_score: Some(leakage.score),
@@ -462,6 +474,8 @@ pub async fn run(
                                 text: None, style_distance: None, base_voice_distance: None,
                                 fk_grade: None, questions_per_1k: None, exclamations_per_1k: None,
                                 terminal_punct_dist: None, structural_punct_dist: None,
+                                sentence_length_dist: None, function_word_cos: None,
+                                ngram_cos: None, readability_diff: None, richness_diff: None,
                                 slop_score: None, slop_multiplier: None,
                                 canon_leakage_score: None, leaked_terms: None,
                                 word_count: None, sentence_count: None,
@@ -589,12 +603,11 @@ fn compute_canon_leakage(output: &str, prompt: &str, lexicon: &[String]) -> Leak
     let mut checkable = 0;
 
     for term in lexicon {
-        if prompt_lower.contains(term.as_str()) {
+        // Skip terms present in the prompt (using same whole-word matching)
+        if contains_whole(term, &prompt_lower) {
             continue;
         }
         checkable += 1;
-        // Token-boundary matching: check that the term appears as a whole word/phrase
-        // rather than as a substring of a longer word
         if contains_whole(term, &output_lower) {
             leaked_terms.push(term.clone());
         }
@@ -609,17 +622,15 @@ fn compute_canon_leakage(output: &str, prompt: &str, lexicon: &[String]) -> Leak
     LeakageResult { score, leaked_terms }
 }
 
-/// Check if `needle` appears in `haystack` at a word boundary.
+/// Check if `needle` appears in `haystack` at a Unicode word boundary.
 /// Prevents "art" matching inside "article" etc.
 fn contains_whole(needle: &str, haystack: &str) -> bool {
-    let bytes = haystack.as_bytes();
-    let needle_bytes = needle.as_bytes();
-    let nlen = needle_bytes.len();
-
     for (start, _) in haystack.match_indices(needle) {
-        let end = start + nlen;
-        let before_ok = start == 0 || !bytes[start - 1].is_ascii_alphanumeric();
-        let after_ok = end >= bytes.len() || !bytes[end].is_ascii_alphanumeric();
+        let end = start + needle.len();
+        let before_ok = start == 0
+            || !haystack[..start].chars().next_back().is_some_and(|c| c.is_alphanumeric());
+        let after_ok = end >= haystack.len()
+            || !haystack[end..].chars().next().is_some_and(|c| c.is_alphanumeric());
         if before_ok && after_ok {
             return true;
         }
@@ -685,9 +696,13 @@ fn compute_combo_result(
     let ok_records: Vec<&GenerationRecord> = records.iter().filter(|r| r.status == "ok").collect();
     let overall = compute_bucket_stats("overall", &ok_records, failed);
 
-    // Per-bucket stats
+    // Per-bucket stats — always include all standard buckets
     let mut buckets = std::collections::BTreeMap::new();
-    let bucket_names: std::collections::BTreeSet<String> = records.iter().map(|r| r.category.clone()).collect();
+    let standard_buckets = ["off-domain", "canon-adjacent", "longform", "shortform"];
+    let mut bucket_names: std::collections::BTreeSet<String> = records.iter().map(|r| r.category.clone()).collect();
+    for b in &standard_buckets {
+        bucket_names.insert(b.to_string());
+    }
 
     for bucket_name in &bucket_names {
         let bucket_ok: Vec<&GenerationRecord> = ok_records.iter()
@@ -713,22 +728,26 @@ fn compute_combo_result(
 }
 
 fn compute_bucket_stats(name: &str, records: &[&GenerationRecord], failed: usize) -> BucketStats {
-    let n = records.len() as f64;
     if records.is_empty() {
+        // All-failure: use f64::MAX for distance/leakage so these can't win
         return BucketStats {
             bucket: name.to_string(),
             count: 0,
             failed,
-            mean_style_distance: 0.0,
-            median_style_distance: 0.0,
+            mean_style_distance: f64::MAX,
+            median_style_distance: f64::MAX,
             variance_style_distance: 0.0,
-            mean_canon_leakage: 0.0,
-            worst_canon_leakage: 0.0,
+            mean_canon_leakage: f64::MAX,
+            worst_canon_leakage: f64::MAX,
             mean_questions_per_1k: 0.0,
             mean_exclamations_per_1k: 0.0,
+            mean_terminal_punct_dist: f64::MAX,
+            mean_structural_punct_dist: f64::MAX,
             mean_fk_grade: 0.0,
         };
     }
+
+    let n = records.len() as f64;
 
     let dists: Vec<f64> = records.iter().filter_map(|r| r.style_distance).collect();
     let mean_dist = dists.iter().sum::<f64>() / n;
@@ -745,7 +764,7 @@ fn compute_bucket_stats(name: &str, records: &[&GenerationRecord], failed: usize
     let variance_dist = dists.iter().map(|d| (d - mean_dist).powi(2)).sum::<f64>() / n;
 
     let leakages: Vec<f64> = records.iter().filter_map(|r| r.canon_leakage_score).collect();
-    let mean_leak = leakages.iter().sum::<f64>() / n.max(1.0);
+    let mean_leak = leakages.iter().sum::<f64>() / n;
     let worst_leak = leakages.iter().copied().fold(0.0f64, f64::max);
 
     BucketStats {
@@ -759,13 +778,15 @@ fn compute_bucket_stats(name: &str, records: &[&GenerationRecord], failed: usize
         worst_canon_leakage: worst_leak,
         mean_questions_per_1k: records.iter().filter_map(|r| r.questions_per_1k).sum::<f64>() / n,
         mean_exclamations_per_1k: records.iter().filter_map(|r| r.exclamations_per_1k).sum::<f64>() / n,
+        mean_terminal_punct_dist: records.iter().filter_map(|r| r.terminal_punct_dist).sum::<f64>() / n,
+        mean_structural_punct_dist: records.iter().filter_map(|r| r.structural_punct_dist).sum::<f64>() / n,
         mean_fk_grade: records.iter().filter_map(|r| r.fk_grade).sum::<f64>() / n,
     }
 }
 
 /// Hard-gate winner selection per the decision protocol:
-/// Gate 1: lowest off-domain canon leakage
-/// Gate 2: acceptable structural voice metrics (questions, exclamations)
+/// Gate 1: lowest off-domain canon leakage (strict — only combos with 0 successful off-domain gens are excluded)
+/// Gate 2: best structural voice distance (terminal + structural punct, lower = closer to author)
 /// Gate 3: lowest overall style distance as tiebreaker
 fn select_winner(results: &[ComboResult]) -> WinnerReport {
     if results.is_empty() {
@@ -780,69 +801,73 @@ fn select_winner(results: &[ComboResult]) -> WinnerReport {
 
     let mut reasoning = Vec::new();
 
-    // Gate 1: Filter by off-domain canon leakage
-    let off_domain_leakages: Vec<(usize, f64)> = results.iter().enumerate()
-        .map(|(i, r)| {
-            let leak = r.buckets.get("off-domain")
-                .map(|b| b.mean_canon_leakage)
-                .unwrap_or(r.overall.mean_canon_leakage);
-            (i, leak)
-        })
+    // Exclude combos with 0 successful generations
+    let viable: Vec<usize> = results.iter().enumerate()
+        .filter(|(_, r)| r.succeeded > 0)
+        .map(|(i, _)| i)
         .collect();
 
-    let min_leak = off_domain_leakages.iter().map(|(_, l)| *l).fold(f64::MAX, f64::min);
-    // Allow within 50% of best leakage (or absolute threshold 0.05)
-    let leak_threshold = (min_leak * 1.5).max(0.05);
-    let gate1_survivors: Vec<usize> = off_domain_leakages.iter()
-        .filter(|(_, l)| *l <= leak_threshold)
-        .map(|(i, _)| *i)
-        .collect();
-
-    reasoning.push(format!(
-        "Gate 1 (leakage ≤ {:.3}): {} of {} survive",
-        leak_threshold, gate1_survivors.len(), results.len()
-    ));
-
-    if gate1_survivors.is_empty() {
-        // All fail — pick lowest leakage anyway
-        let best_idx = off_domain_leakages.iter()
-            .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
-            .map(|(i, _)| *i)
-            .unwrap_or(0);
-        let r = &results[best_idx];
+    if viable.is_empty() {
         return WinnerReport {
-            combination: format!("{} + {}", r.training_format, r.inference_mode),
-            gate_passed: "gate1-all-failed".to_string(),
-            off_domain_leakage: off_domain_leakages[best_idx].1,
-            overall_style_distance: r.overall.mean_style_distance,
-            reasoning,
+            combination: "none".to_string(),
+            gate_passed: "all-failed".to_string(),
+            off_domain_leakage: 0.0,
+            overall_style_distance: 0.0,
+            reasoning: vec!["All combinations failed to produce output".to_string()],
         };
     }
 
-    // Gate 2: Best structural voice metrics (questions + exclamations)
+    reasoning.push(format!("{} of {} combos have successful generations", viable.len(), results.len()));
+
+    // Gate 1: Sort by off-domain leakage, keep top half (strict lexicographic)
+    let mut gate1_scored: Vec<(usize, f64)> = viable.iter()
+        .map(|&i| {
+            let leak = results[i].buckets.get("off-domain")
+                .filter(|b| b.count > 0)
+                .map(|b| b.mean_canon_leakage)
+                .unwrap_or(results[i].overall.mean_canon_leakage);
+            (i, leak)
+        })
+        .collect();
+    gate1_scored.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
+
+    // Keep at most half, but at least 2 (or all if ≤ 2)
+    let gate1_keep = gate1_scored.len().min(gate1_scored.len() / 2 + 1).max(2).min(gate1_scored.len());
+    let gate1_survivors: Vec<usize> = gate1_scored.iter().take(gate1_keep).map(|(i, _)| *i).collect();
+
+    for (i, leak) in &gate1_scored {
+        let r = &results[*i];
+        let survived = gate1_survivors.contains(i);
+        reasoning.push(format!(
+            "  G1: {} + {} leak={:.4} {}",
+            r.training_format, r.inference_mode, leak,
+            if survived { "PASS" } else { "ELIMINATED" }
+        ));
+    }
+
+    // Gate 2: Sort by structural voice distance (terminal + structural punct dist, lower = better)
     let mut gate2_scored: Vec<(usize, f64)> = gate1_survivors.iter()
         .map(|&i| {
             let r = &results[i];
-            let q = r.overall.mean_questions_per_1k;
-            let e = r.overall.mean_exclamations_per_1k;
-            // Higher is better for structural voice
-            (i, q + e)
+            let voice_dist = r.overall.mean_terminal_punct_dist + r.overall.mean_structural_punct_dist;
+            (i, voice_dist)
         })
         .collect();
-    gate2_scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+    gate2_scored.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
-    let best_voice = gate2_scored[0].1;
-    // Keep those within 80% of best voice score
-    let voice_threshold = best_voice * 0.8;
-    let gate2_survivors: Vec<usize> = gate2_scored.iter()
-        .filter(|(_, s)| *s >= voice_threshold)
-        .map(|(i, _)| *i)
-        .collect();
+    // Keep at most half+1 or all if ≤ 2
+    let gate2_keep = gate2_scored.len().min(gate2_scored.len() / 2 + 1).max(2).min(gate2_scored.len());
+    let gate2_survivors: Vec<usize> = gate2_scored.iter().take(gate2_keep).map(|(i, _)| *i).collect();
 
-    reasoning.push(format!(
-        "Gate 2 (voice ≥ {:.1}): {} survive",
-        voice_threshold, gate2_survivors.len()
-    ));
+    for (i, dist) in &gate2_scored {
+        let r = &results[*i];
+        let survived = gate2_survivors.contains(i);
+        reasoning.push(format!(
+            "  G2: {} + {} voice_dist={:.4} {}",
+            r.training_format, r.inference_mode, dist,
+            if survived { "PASS" } else { "ELIMINATED" }
+        ));
+    }
 
     // Gate 3: Lowest style distance as tiebreaker
     let mut gate3_scored: Vec<(usize, f64)> = gate2_survivors.iter()
@@ -852,16 +877,16 @@ fn select_winner(results: &[ComboResult]) -> WinnerReport {
 
     let winner_idx = gate3_scored[0].0;
     let r = &results[winner_idx];
-    let winner_leak = off_domain_leakages[winner_idx].1;
+    let winner_leak = gate1_scored.iter().find(|(i, _)| *i == winner_idx).map(|(_, l)| *l).unwrap_or(0.0);
 
     reasoning.push(format!(
-        "Gate 3 (tiebreak): {} + {} wins with dist={:.3}",
-        r.training_format, r.inference_mode, r.overall.mean_style_distance
+        "  WINNER: {} + {} dist={:.3} leak={:.4}",
+        r.training_format, r.inference_mode, r.overall.mean_style_distance, winner_leak
     ));
 
     WinnerReport {
         combination: format!("{} + {}", r.training_format, r.inference_mode),
-        gate_passed: "gate3-tiebreak".to_string(),
+        gate_passed: "all-gates".to_string(),
         off_domain_leakage: winner_leak,
         overall_style_distance: r.overall.mean_style_distance,
         reasoning,

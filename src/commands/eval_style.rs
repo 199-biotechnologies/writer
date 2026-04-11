@@ -387,7 +387,7 @@ fn compute_canon_leakage(output: &str, prompt: &str, lexicon: &[String]) -> f64 
     let mut checkable = 0;
 
     for term in lexicon {
-        if prompt_lower.contains(term.as_str()) {
+        if contains_whole_word(term, &prompt_lower) {
             continue;
         }
         checkable += 1;
@@ -403,15 +403,14 @@ fn compute_canon_leakage(output: &str, prompt: &str, lexicon: &[String]) -> f64 
     leaked as f64 / checkable as f64
 }
 
-/// Check if `needle` appears in `haystack` at word boundaries.
+/// Check if `needle` appears in `haystack` at Unicode word boundaries.
 fn contains_whole_word(needle: &str, haystack: &str) -> bool {
-    let bytes = haystack.as_bytes();
-    let nlen = needle.len();
-
     for (start, _) in haystack.match_indices(needle) {
-        let end = start + nlen;
-        let before_ok = start == 0 || !bytes[start - 1].is_ascii_alphanumeric();
-        let after_ok = end >= bytes.len() || !bytes[end].is_ascii_alphanumeric();
+        let end = start + needle.len();
+        let before_ok = start == 0
+            || !haystack[..start].chars().next_back().is_some_and(|c| c.is_alphanumeric());
+        let after_ok = end >= haystack.len()
+            || !haystack[end..].chars().next().is_some_and(|c| c.is_alphanumeric());
         if before_ok && after_ok {
             return true;
         }
