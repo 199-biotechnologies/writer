@@ -19,8 +19,12 @@ pub fn from_fingerprint(fp: &StylometricFingerprint, config: &DecodingConfig) ->
         bias.insert(word.clone(), config.banned_word_bias);
     }
 
-    // Also suppress the static AI slop list
+    // Also suppress the static AI slop list, excluding author-valid discourse markers
+    const AUTHOR_VALID: &[&str] = &["furthermore", "moreover", "nevertheless"];
     for word in ai_slop::BANNED_WORDS {
+        if AUTHOR_VALID.contains(word) {
+            continue;
+        }
         bias.entry(word.to_string())
             .or_insert(config.banned_word_bias);
     }

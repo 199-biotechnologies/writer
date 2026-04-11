@@ -103,68 +103,76 @@ def main():
             sys.stdout.flush()
             continue
 
-        prompt_text = req.get("prompt", "")
-        system_prompt = req.get("system_prompt")
-        prompt_mode = req.get("prompt_mode", "chat")
-        max_tokens = req.get("max_tokens", 2048)
-        temperature = req.get("temperature", 0.7)
-        top_p = req.get("top_p", 0.92)
-        repetition_penalty = req.get("repetition_penalty", 1.05)
-        logit_bias = req.get("logit_bias")
-        seed = req.get("seed")
+        try:
+            prompt_text = req.get("prompt", "")
+            system_prompt = req.get("system_prompt")
+            prompt_mode = req.get("prompt_mode", "chat")
+            max_tokens = req.get("max_tokens", 2048)
+            temperature = req.get("temperature", 0.7)
+            top_p = req.get("top_p", 0.92)
+            repetition_penalty = req.get("repetition_penalty", 1.05)
+            logit_bias = req.get("logit_bias")
+            seed = req.get("seed")
 
-        # Set seed for reproducibility
-        if seed is not None:
-            mx.random.seed(seed)
+            # Set seed for reproducibility
+            if seed is not None:
+                mx.random.seed(seed)
 
-        # Format prompt
-        if prompt_mode == "raw":
-            formatted = prompt_text
-        else:
-            messages = []
-            if system_prompt:
-                messages.append({"role": "system", "content": system_prompt})
-            messages.append({"role": "user", "content": prompt_text})
-
-            if hasattr(tokenizer, "apply_chat_template"):
-                formatted = tokenizer.apply_chat_template(
-                    messages, add_generation_prompt=True, tokenize=False
-                )
+            # Format prompt
+            if prompt_mode == "raw":
+                formatted = prompt_text
             else:
-                formatted = ""
+                messages = []
                 if system_prompt:
-                    formatted += system_prompt + "\n\n"
-                formatted += prompt_text
+                    messages.append({"role": "system", "content": system_prompt})
+                messages.append({"role": "user", "content": prompt_text})
 
-        sampler = make_sampler(temp=temperature, top_p=top_p)
-        logits_processor = build_logits_processor(logit_bias, tokenizer)
+                if hasattr(tokenizer, "apply_chat_template"):
+                    formatted = tokenizer.apply_chat_template(
+                        messages, add_generation_prompt=True, tokenize=False
+                    )
+                else:
+                    formatted = ""
+                    if system_prompt:
+                        formatted += system_prompt + "\n\n"
+                    formatted += prompt_text
 
-        gen_kwargs = dict(max_tokens=max_tokens, sampler=sampler)
-        if logits_processor is not None:
-            gen_kwargs["logits_processors"] = [logits_processor]
+            sampler = make_sampler(temp=temperature, top_p=top_p)
+            logits_processor = build_logits_processor(logit_bias, tokenizer)
 
-        t0 = time.time()
+            gen_kwargs = dict(max_tokens=max_tokens, sampler=sampler)
+            if logits_processor is not None:
+                gen_kwargs["logits_processors"] = [logits_processor]
 
-        full_text = ""
-        last_resp = None
-        for resp in stream_generate(model, tokenizer, formatted, **gen_kwargs):
-            full_text += resp.text
-            last_resp = resp
+            t0 = time.time()
 
-        elapsed = time.time() - t0
+            full_text = ""
+            last_resp = None
+            for resp in stream_generate(model, tokenizer, formatted, **gen_kwargs):
+                full_text += resp.text
+                last_resp = resp
 
-        result = {
-            "text": full_text.strip(),
-            "prompt_tokens": last_resp.prompt_tokens if last_resp else 0,
-            "generation_tokens": last_resp.generation_tokens if last_resp else 0,
-            "generation_tps": last_resp.generation_tps if last_resp else 0.0,
-            "peak_memory_gb": last_resp.peak_memory if last_resp else 0.0,
-            "finish_reason": last_resp.finish_reason if last_resp else "unknown",
-            "elapsed_ms": int(elapsed * 1000),
-        }
+            elapsed = time.time() - t0
 
-        sys.stdout.write(json.dumps(result) + "\n")
-        sys.stdout.flush()
+            result = {
+                "text": full_text.strip(),
+                "prompt_tokens": last_resp.prompt_tokens if last_resp else 0,
+                "generation_tokens": last_resp.generation_tokens if last_resp else 0,
+                "generation_tps": last_resp.generation_tps if last_resp else 0.0,
+                "peak_memory_gb": last_resp.peak_memory if last_resp else 0.0,
+                "finish_reason": last_resp.finish_reason if last_resp else "unknown",
+                "elapsed_ms": int(elapsed * 1000),
+            }
+
+            sys.stdout.write(json.dumps(result) + "\n")
+            sys.stdout.flush()
+
+        except Exception as e:
+            err_result = {"error": str(e), "text": None}
+            sys.stdout.write(json.dumps(err_result) + "\n")
+            sys.stdout.flush()
+            sys.stderr.write(f"worker: generation error: {e}\n")
+            sys.stderr.flush()
 
     sys.stderr.write("worker: shutting down\n")
     sys.stderr.flush()

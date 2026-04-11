@@ -93,6 +93,24 @@ impl MlxWorker {
             WorkerError::Unavailable("Failed to open worker stdout".to_string())
         })?;
 
+        // Drain stderr in background to prevent deadlock from MLX/model-load logs
+        if let Some(stderr) = child.stderr.take() {
+            tokio::spawn(async move {
+                let mut reader = BufReader::new(stderr);
+                let mut line = String::new();
+                loop {
+                    line.clear();
+                    match reader.read_line(&mut line).await {
+                        Ok(0) => break,
+                        Ok(_) => {
+                            eprint!("  [mlx-worker] {}", line);
+                        }
+                        Err(_) => break,
+                    }
+                }
+            });
+        }
+
         // Send startup config
         let startup = WorkerStartup {
             model: mlx_model,

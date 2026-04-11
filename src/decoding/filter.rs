@@ -28,9 +28,11 @@ pub fn check(
     }
 
     // Check for high concentration of banned words (soft reject if > 3)
+    // Exclude author-valid discourse markers that appear in the target corpus
+    const AUTHOR_VALID: &[&str] = &["furthermore", "moreover", "nevertheless"];
     let banned_count: usize = ai_slop::BANNED_WORDS
         .iter()
-        .filter(|w| text_lower.contains(**w))
+        .filter(|w| !AUTHOR_VALID.contains(*w) && text_lower.contains(**w))
         .count();
 
     if banned_count > 3 {

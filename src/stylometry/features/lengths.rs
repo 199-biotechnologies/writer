@@ -59,8 +59,9 @@ pub fn sentence_length_histogram(text: &str) -> Vec<f64> {
 /// For 1D distributions this equals the sum of absolute CDF differences,
 /// weighted by bin-center transport distances.
 pub fn histogram_emd(a: &[f64], b: &[f64]) -> f64 {
-    if a.len() != b.len() || a.is_empty() {
-        return 0.5; // fallback for missing/mismatched histograms
+    let n_bins = HISTOGRAM_BINS.len();
+    if a.len() != n_bins || b.len() != n_bins {
+        return 0.5; // fallback for missing/mismatched/corrupt histograms
     }
 
     // Cumulative distribution difference, weighted by distance between adjacent bin centers

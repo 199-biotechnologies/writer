@@ -35,7 +35,7 @@ pub fn system_prompt(fingerprint: &StylometricFingerprint) -> String {
          - Words you favor: {preferred_str}\n\
          \n\
          Avoid these AI-sounding words and phrases: delve, tapestry, landscape, \
-         leverage, nuance, multifaceted, holistic, pivotal, moreover, furthermore, \
+         leverage, nuance, multifaceted, holistic, pivotal, \
          it's worth noting, in today's world, the intersection of.\n\
          \n\
          Write naturally. Output only the requested text.",
