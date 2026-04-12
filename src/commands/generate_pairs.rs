@@ -17,9 +17,16 @@ use crate::config;
 use crate::error::AppError;
 use crate::output::Ctx;
 
+#[derive(Debug, Deserialize)]
+struct PromptSuite {
+    #[allow(dead_code)]
+    name: Option<String>,
+    prompts: Vec<PromptEntry>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct PromptEntry {
-    prompt: String,
+    text: String,
     #[serde(default)]
     category: String,
 }
@@ -65,8 +72,9 @@ pub async fn run(
     // Load prompt suite
     let suite_text = std::fs::read_to_string(&suite_path)
         .map_err(|e| AppError::Config(format!("Cannot read prompt suite: {e}")))?;
-    let prompts_list: Vec<PromptEntry> = serde_yaml::from_str(&suite_text)
+    let suite: PromptSuite = serde_yaml::from_str(&suite_text)
         .map_err(|e| AppError::Config(format!("Invalid prompt suite YAML: {e}")))?;
+    let prompts_list = suite.prompts;
 
     // Detect adapter
     let adapter_path = {
@@ -112,7 +120,7 @@ pub async fn run(
             for cand_idx in 0..n_candidates {
                 let candidate_seed = rng_seed + cand_idx as u64;
                 let req = WorkerRequest {
-                    prompt: entry.prompt.clone(),
+                    prompt: entry.text.clone(),
                     system_prompt: Some(system.clone()),
                     prompt_mode: "chat".to_string(),
                     max_tokens: cfg.decoding.max_tokens,
@@ -139,7 +147,7 @@ pub async fn run(
 
                         if !text.is_empty() {
                             let report = scoring::distance(&text, &fingerprint);
-                            let rel = relevance::score(&entry.prompt, &text);
+                            let rel = relevance::score(&entry.text, &text);
                             candidates.push((text, report.overall, rel));
                         }
                     }
@@ -177,10 +185,10 @@ pub async fn run(
 
             let margin = rejected_dist - chosen_dist;
 
-            // Filter by margin and relevance
-            if margin >= min_margin && *chosen_rel >= 0.6 {
+            // Filter by margin (relevance gate relaxed — style distance is primary signal)
+            if margin >= min_margin && *chosen_rel >= 0.3 {
                 all_pairs.push(PreferencePair {
-                    prompt: entry.prompt.clone(),
+                    prompt: entry.text.clone(),
                     chosen: chosen_text.clone(),
                     rejected: rejected_text.clone(),
                     chosen_distance: *chosen_dist,

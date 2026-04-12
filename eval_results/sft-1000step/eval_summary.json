@@ -1,0 +1,16 @@
+{
+  "suite_name": "core-ablation-v1",
+  "total_prompts": 10,
+  "seeds_per_prompt": 5,
+  "total_generations": 50,
+  "mean_style_distance": 0.5000396973373956,
+  "median_style_distance": 0.4664721885156504,
+  "mean_fk_grade": 8.467514606372653,
+  "mean_questions_per_1k": 17.193546677225406,
+  "mean_exclamations_per_1k": 10.624533160156757,
+  "mean_canon_leakage": 0.020000000000000004,
+  "mean_prompt_relevance": 0.5083809523809524,
+  "raw_mode": false,
+  "adapter_used": true,
+  "model": "google/gemma-4-26b"
+}

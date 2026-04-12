@@ -1,0 +1,51 @@
+prompt,category,seed,style_distance,sentence_length_mean,sentence_length_sd,fk_grade,questions_per_1k,exclamations_per_1k,canon_leakage_score,prompt_relevance,system_prompt,prompt_wrapping,raw_mode,adapter,n_candidates,model
+"Write a short passage about the experience of arriving at a new airport for the first time.","travel",0,0.6826,19.00,17.37,6.60,31.58,0.00,0.0000,0.0000,true,true,false,true,2,google/gemma-4-26b
+"Write a short passage about the experience of arriving at a new airport for the first time.","travel",1,0.5238,19.13,15.98,7.69,46.53,14.66,0.0400,0.3750,true,true,false,true,2,google/gemma-4-26b
+"Write a short passage about the experience of arriving at a new airport for the first time.","travel",2,0.6734,20.17,22.32,8.46,16.53,16.53,0.0000,0.1250,true,true,false,true,2,google/gemma-4-26b
+"Write a short passage about the experience of arriving at a new airport for the first time.","travel",3,0.4924,30.17,25.14,10.01,11.05,8.29,0.0400,0.3750,true,true,false,true,2,google/gemma-4-26b
+"Write a short passage about the experience of arriving at a new airport for the first time.","travel",4,0.6738,17.40,11.93,5.84,22.99,11.49,0.0000,0.0000,true,true,false,true,2,google/gemma-4-26b
+"Describe what it feels like to debug a particularly frustrating piece of code at 2am.","technology",0,0.5338,22.56,16.45,8.96,19.70,9.85,0.0000,0.3333,true,true,false,true,2,google/gemma-4-26b
+"Describe what it feels like to debug a particularly frustrating piece of code at 2am.","technology",1,0.6981,18.00,16.29,6.84,13.89,13.89,0.0000,0.0000,true,true,false,true,2,google/gemma-4-26b
+"Describe what it feels like to debug a particularly frustrating piece of code at 2am.","technology",2,0.5775,17.20,12.11,6.07,23.26,11.63,0.0200,0.3333,true,true,false,true,2,google/gemma-4-26b
+"Describe what it feels like to debug a particularly frustrating piece of code at 2am.","technology",3,0.5310,43.43,25.71,17.12,9.87,4.39,0.0600,0.3333,true,true,false,true,2,google/gemma-4-26b
+"Describe what it feels like to debug a particularly frustrating piece of code at 2am.","technology",4,0.4857,12.54,8.30,4.20,20.45,10.22,0.1600,0.3333,true,true,false,true,2,google/gemma-4-26b
+"Write about the strange comfort of eating breakfast alone in a hotel restaurant.","personal",0,0.4913,23.44,18.69,8.94,18.67,8.00,0.0000,0.4286,true,true,false,true,2,google/gemma-4-26b
+"Write about the strange comfort of eating breakfast alone in a hotel restaurant.","personal",1,0.6399,16.14,17.72,5.95,17.70,8.85,0.0000,0.0000,true,true,false,true,2,google/gemma-4-26b
+"Write about the strange comfort of eating breakfast alone in a hotel restaurant.","personal",2,0.6840,9.71,3.57,2.95,14.71,14.71,0.0000,0.2857,true,true,false,true,2,google/gemma-4-26b
+"Write about the strange comfort of eating breakfast alone in a hotel restaurant.","personal",3,0.7344,17.00,11.00,6.66,0.00,0.00,0.0000,0.0000,true,true,false,true,2,google/gemma-4-26b
+"Write about the strange comfort of eating breakfast alone in a hotel restaurant.","personal",4,0.5391,27.75,19.40,11.23,9.01,9.01,0.0000,0.2857,true,true,false,true,2,google/gemma-4-26b
+"Explain why most meetings could have been an email.","business",0,0.4688,21.75,15.50,9.53,15.33,15.33,0.0000,0.6667,true,true,false,true,2,google/gemma-4-26b
+"Explain why most meetings could have been an email.","business",1,0.4115,21.75,15.59,9.58,22.99,15.33,0.0000,1.0000,true,true,false,true,2,google/gemma-4-26b
+"Explain why most meetings could have been an email.","business",2,0.6618,17.50,16.03,6.41,19.05,9.52,0.0000,0.0000,true,true,false,true,2,google/gemma-4-26b
+"Explain why most meetings could have been an email.","business",3,0.4862,30.17,19.23,12.86,5.52,11.05,0.0000,0.6667,true,true,false,true,2,google/gemma-4-26b
+"Explain why most meetings could have been an email.","business",4,0.4438,27.07,21.23,11.27,12.32,9.85,0.0000,0.6667,true,true,false,true,2,google/gemma-4-26b
+"Describe the moment you realize a restaurant is going to be disappointing.","personal",0,0.6322,19.83,21.40,6.72,16.81,0.00,0.0000,0.2000,true,true,false,true,2,google/gemma-4-26b
+"Describe the moment you realize a restaurant is going to be disappointing.","personal",1,0.5222,24.29,18.40,9.36,11.76,5.88,0.0000,0.4000,true,true,false,true,2,google/gemma-4-26b
+"Describe the moment you realize a restaurant is going to be disappointing.","personal",2,0.3502,20.27,13.29,4.47,15.15,9.67,0.2200,0.8000,true,true,false,true,2,google/gemma-4-26b
+"Describe the moment you realize a restaurant is going to be disappointing.","personal",3,0.5305,21.83,11.82,8.84,22.04,11.31,0.0400,0.4000,true,true,false,true,2,google/gemma-4-26b
+"Describe the moment you realize a restaurant is going to be disappointing.","personal",4,0.6502,29.24,10.18,11.07,21.98,21.98,0.1400,0.4000,true,true,false,true,2,google/gemma-4-26b
+"Write about the absurdity of modern bureaucracy.","canon-adjacent",0,0.6629,26.29,18.87,11.63,10.87,19.93,0.0200,0.0000,true,true,false,true,2,google/gemma-4-26b
+"Write about the absurdity of modern bureaucracy.","canon-adjacent",1,0.5905,21.25,18.99,8.59,11.76,5.88,0.0800,0.0000,true,true,false,true,2,google/gemma-4-26b
+"Write about the absurdity of modern bureaucracy.","canon-adjacent",2,0.6144,19.12,19.76,7.99,19.61,6.54,0.0000,0.0000,true,true,false,true,2,google/gemma-4-26b
+"Write about the absurdity of modern bureaucracy.","canon-adjacent",3,0.6377,22.12,25.68,9.04,11.30,11.30,0.0000,0.0000,true,true,false,true,2,google/gemma-4-26b
+"Write about the absurdity of modern bureaucracy.","canon-adjacent",4,0.4924,28.91,29.55,9.61,9.43,9.43,0.0000,0.3333,true,true,false,true,2,google/gemma-4-26b
+"Describe the feeling of being hopelessly lost while trying to follow directions.","canon-adjacent",0,0.5464,20.76,8.34,6.99,16.06,11.47,0.0400,0.1429,true,true,false,true,2,google/gemma-4-26b
+"Describe the feeling of being hopelessly lost while trying to follow directions.","canon-adjacent",1,0.6624,14.50,11.61,4.71,17.24,17.24,0.0000,0.1429,true,true,false,true,2,google/gemma-4-26b
+"Describe the feeling of being hopelessly lost while trying to follow directions.","canon-adjacent",2,0.4323,35.67,28.28,15.08,6.23,0.00,0.0000,0.7143,true,true,false,true,2,google/gemma-4-26b
+"Describe the feeling of being hopelessly lost while trying to follow directions.","canon-adjacent",3,0.6284,14.50,10.50,5.93,17.24,17.24,0.0000,0.1429,true,true,false,true,2,google/gemma-4-26b
+"Describe the feeling of being hopelessly lost while trying to follow directions.","canon-adjacent",4,0.6468,49.89,37.00,19.64,4.45,4.45,0.0000,0.1429,true,true,false,true,2,google/gemma-4-26b
+"Write about the fundamental improbability of anything working as intended.","canon-adjacent",0,0.5361,22.60,14.73,8.89,8.85,8.85,0.0200,0.4000,true,true,false,true,2,google/gemma-4-26b
+"Write about the fundamental improbability of anything working as intended.","canon-adjacent",1,0.5030,25.40,9.85,10.85,7.87,7.87,0.0200,0.4000,true,true,false,true,2,google/gemma-4-26b
+"Write about the fundamental improbability of anything working as intended.","canon-adjacent",2,0.6576,13.50,9.91,6.72,18.52,18.52,0.0000,0.2000,true,true,false,true,2,google/gemma-4-26b
+"Write about the fundamental improbability of anything working as intended.","canon-adjacent",3,0.5697,19.17,12.14,7.79,0.00,17.39,0.0200,0.4000,true,true,false,true,2,google/gemma-4-26b
+"Write about the fundamental improbability of anything working as intended.","canon-adjacent",4,0.5841,23.43,14.77,9.09,12.20,12.20,0.1000,0.2000,true,true,false,true,2,google/gemma-4-26b
+"Write a 300-word essay about why humans are terrible at estimating how long things will take.","longform",0,0.6763,15.80,8.57,7.60,25.32,12.66,0.0000,0.2857,true,true,false,true,2,google/gemma-4-26b
+"Write a 300-word essay about why humans are terrible at estimating how long things will take.","longform",1,0.6586,13.00,13.87,3.78,38.46,19.23,0.0000,0.2857,true,true,false,true,2,google/gemma-4-26b
+"Write a 300-word essay about why humans are terrible at estimating how long things will take.","longform",2,0.6968,15.75,8.26,7.78,15.87,15.87,0.0000,0.2857,true,true,false,true,2,google/gemma-4-26b
+"Write a 300-word essay about why humans are terrible at estimating how long things will take.","longform",3,0.4890,19.65,12.73,8.71,14.97,11.98,0.0200,0.5714,true,true,false,true,2,google/gemma-4-26b
+"Write a 300-word essay about why humans are terrible at estimating how long things will take.","longform",4,0.4581,20.90,18.20,6.83,16.75,28.71,0.1400,0.5714,true,true,false,true,2,google/gemma-4-26b
+"In two sentences, describe the taste of cheap coffee.","shortform",0,0.8181,6.33,1.70,0.54,52.63,52.63,0.0000,0.2000,true,true,false,true,2,google/gemma-4-26b
+"In two sentences, describe the taste of cheap coffee.","shortform",1,0.7403,6.00,0.00,1.50,83.33,0.00,0.0000,0.2000,true,true,false,true,2,google/gemma-4-26b
+"In two sentences, describe the taste of cheap coffee.","shortform",2,0.7649,6.00,2.00,4.45,0.00,83.33,0.0000,0.2000,true,true,false,true,2,google/gemma-4-26b
+"In two sentences, describe the taste of cheap coffee.","shortform",3,0.7596,8.00,2.16,0.80,41.67,41.67,0.0000,0.2000,true,true,false,true,2,google/gemma-4-26b
+"In two sentences, describe the taste of cheap coffee.","shortform",4,0.7959,6.50,0.50,1.47,76.92,0.00,0.0000,0.2000,true,true,false,true,2,google/gemma-4-26b
